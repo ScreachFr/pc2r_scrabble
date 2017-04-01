@@ -6,7 +6,9 @@ import game.pouches.RandomPouch;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javafx.util.Pair;
@@ -83,7 +85,7 @@ public class Scrabble {
 	 * Permet de proposer un réponse.
 	 * @param proposedBoard - Réponse sous forme d'état du plateau de jeu avec les nouvelles lettres.
 	 * @throws WordPlacementException - La proposition n'est pas bonne. Cela peut vouloir dire que le mot
-	 * 		proposé ou les nouveaux mots qu'il engendre n'existe pas. Ou alors t'a tentative de triche viens
+	 * 		proposé ou les nouveaux mots qu'il engendre n'existe pas. Ou alors ta tentative de triche viens
 	 * 		de lamentablement échouer. 
 	 */
 	public void propose(String proposedBoard) throws WordPlacementException {
@@ -92,13 +94,18 @@ public class Scrabble {
 		if (!isPropositionValid(proposition))
 			throw new WordPlacementException(Why.INVALID_PROPOSITION);
 		
-		HashMap<Character, Pair<Integer, Integer>> newLetters = findNewLetters(proposition);
+		ArrayList<ProposedLetter> newLetters = findNewLetters(proposition);
 		
 		// Proposition sans nouvelle lettre.
-		if (newLetters.keySet().isEmpty())
+		if (newLetters.isEmpty())
 			throw new WordPlacementException(Why.INVALID_PROPOSITION);
 		
-		//TODO : check sens, suite de lettre sans troue.
+		boolean isVertical = isPropositionVertical(newLetters);
+		
+		if (!checkHoles(newLetters, proposition, isVertical)) 
+			throw new WordPlacementException(Why.INVALID_PROPOSITION);
+		
+		
 		
 	}
 	
@@ -125,13 +132,13 @@ public class Scrabble {
 	 * @param proposition - Proposition du client. Là où nous allons chercher de nouvelles lettres.
 	 * @return - Liste des nouvelles lettres accompagnées de leurs coordonnées.
 	 */
-	public HashMap<Character, Pair<Integer, Integer>> findNewLetters(char[][] proposition) {
-		HashMap<Character, Pair<Integer, Integer>> result = new HashMap<>();
+	public ArrayList<ProposedLetter> findNewLetters(char[][] proposition) {
+		ArrayList<ProposedLetter> result = new ArrayList<>();
 		
 		for (int i = 0; i < BOARD_SIZE; i++) {
 			for (int j = 0; j < BOARD_SIZE; j++) {
 				if (board[i][j] == NULL_CHAR && proposition[i][j] != NULL_CHAR)
-					result.put(proposition[i][j], new Pair<Integer, Integer>(i, j));
+					result.add(new ProposedLetter(proposition[i][j], i, j));
 			}
 		}
 		
@@ -145,28 +152,24 @@ public class Scrabble {
 	 * @throws WordPlacementException - État des lettre incohérent. Encore une tentative de triche...
 	 * XXX Pas testé!
 	 */
-	public boolean isPropositionVertical(HashMap<Character, Pair<Integer, Integer>> newLetters) throws WordPlacementException {
+	public boolean isPropositionVertical(ArrayList<ProposedLetter> newLetters) throws WordPlacementException {
 		boolean sameX = true;
 		boolean sameY = true;
 		int lastX = -1;
 		int lastY = -1;
-		Pair<Integer, Integer> currentPair;
 		
-		for (Character c : newLetters.keySet()) {
-			currentPair = newLetters.get(c);
-			
+		for (ProposedLetter c : newLetters) {
 			if (lastX == -1)
-				lastX = currentPair.getKey();
-			else if (lastX != currentPair.getKey())
+				lastX = c.getX();
+			else if (lastX != c.getX())
 				sameX = false;
 			
 			if (lastY == -1)
-				lastY = currentPair.getValue();
-			else if (lastY != currentPair.getValue())
+				lastY = c.getY();
+			else if (lastY != c.getY())
 				sameY = false;
 			
 		}
-		
 		
 		if (!sameX && !sameY)
 			throw new WordPlacementException(Why.INVALID_PROPOSITION);
@@ -193,6 +196,128 @@ public class Scrabble {
 		return true; 
 	}
 	
+	/**
+	 * Vérifie s'il y a des trous dans les mots qui sont engendrés par les nouvelles lettres.
+	 * @param letters - Lettres proposées par le client.
+	 * @return - Le placement est-il valide ?
+	 * XXX pas testée.
+	 */
+	private boolean checkHoles(ArrayList<ProposedLetter> letters, char[][] proposedBoard, boolean direction) {
+		int min = Integer.MAX_VALUE, max = -1;
+		
+		if (direction) { // Vertical
+			
+			for (ProposedLetter p : letters) {
+				if (p.getY() > max)
+					max = p.getY();
+				if (p.getY() < min)
+					min = p.getY();
+			}
+			
+			int constX = letters.get(0).getX();
+			
+			
+			for (int i = min; i < max; i++) {
+				if (proposedBoard[constX][i] == NULL_CHAR)
+					return false;
+			}
+			
+		} else { // Horizontal
+			for (ProposedLetter p : letters) {
+				if (p.getX() > max)
+					max = p.getX();
+				if (p.getX() < min)
+					min = p.getX();
+			}
+			
+			int constY = letters.get(0).getY();
+			
+			
+			for (int i = min; i < max; i++) {
+				if (proposedBoard[i][constY] == NULL_CHAR)
+					return false;
+			}
+		
+		}
+		
+		return true;
+	}
+	
+	
+	public ArrayList<Pair<String, ProposedLetter[]>> findNewWords(ArrayList<ProposedLetter> newLetters, boolean direction, char[][] proposedBoard) {
+		ArrayList<Pair<String, ProposedLetter[]>> newWords = new ArrayList<>();
+		int min = Integer.MAX_VALUE, max = -1;
+		if (direction) {
+			for (ProposedLetter p : newLetters) {
+				if (p.getY() > max)
+					max = p.getY();
+				if (p.getY() < min)
+					min = p.getY();
+			}
+			int constX = newLetters.get(0).getX();
+			for (ProposedLetter letter : newLetters) {
+				if (constX != 0 && board[constX - 1][letter.getY()] != NULL_CHAR ||
+						constX != BOARD_SIZE - 1 && board[constX + 1][letter.getY()] != NULL_CHAR) {
+					ProposedLetter[] l = { letter };
+					newWords.add(new Pair<String, ProposedLetter[]>(findHorizontalWord(l, letter.getY()), l));
+				}
+			}
+			newWords.add(new Pair<String, ProposedLetter[]>(findVerticalWord(
+					(ProposedLetter[]) newLetters.toArray(new ProposedLetter[newLetters.size()]), x, y)), constX), newLetters));
+		}
+		return newWords;
+	}
+	
+	private String findVerticalWord(ProposedLetter[] l, int x) {
+		String newWord = "";
+		boolean isNewWord = false;
+		ProposedLetter curLetter;
+		for (int y = 0 ; y < BOARD_SIZE ; y++) {
+			curLetter = findLetter(l, x, y);
+			if (board[x][y] == NULL_CHAR && curLetter == null) {
+				if (isNewWord)
+					return newWord;
+				newWord = "";
+			}
+			else if (board[x][y] != NULL_CHAR)
+				newWord += board[x][y];
+			else {
+				newWord += curLetter.getLetter();
+				isNewWord = true;
+			}
+		}
+		return newWord;
+	}
+
+	private String findHorizontalWord(ProposedLetter[] l, int y) {
+		String newWord = "";
+		boolean isNewWord = false;
+		ProposedLetter curLetter;
+		for (int x = 0 ; x < BOARD_SIZE ; x++) {
+			curLetter = findLetter(l, x, y);
+			if (board[x][y] == NULL_CHAR && curLetter == null) {
+				if (isNewWord)
+					return newWord;
+				newWord = "";
+			}
+			else if (board[x][y] != NULL_CHAR)
+				newWord += board[x][y];
+			else {
+				newWord += curLetter.getLetter();
+				isNewWord = true;
+			}
+		}
+		return newWord;
+	}
+	
+	private ProposedLetter findLetter(ProposedLetter[] l, int x, int y) {
+		for (ProposedLetter proposedLetter : l) {
+			if (proposedLetter.getX() == x && proposedLetter.getY() == y)
+				return proposedLetter;
+		}
+		return null;
+	}
+
 	private boolean validateMultipleWords(ArrayList<String> words) {
 		return words.stream().allMatch(w -> wordChecker.isWordValid(w));
 	}
@@ -257,7 +382,13 @@ public class Scrabble {
 		s.setBoard(b2);
 		
 		System.out.println(s.isPropositionValid(b1));
-
+		ArrayList<ProposedLetter> letters = new ArrayList<ProposedLetter>();
+		
+		letters.add(new ProposedLetter('A', 1, 3));
+		letters.add(new ProposedLetter('B', 5, 3));
+		letters.add(new ProposedLetter('C', 3, 30));
+		letters.add(new ProposedLetter('D', 1, 3));
+		
 		
 	}
 }
