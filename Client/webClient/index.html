@@ -1,0 +1,297 @@
+<!doctype html>
+
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Scrabble du turfu</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+        <style>
+            body {
+                font-family: arial;
+                width: 1000px;
+                margin: auto;
+
+            }
+
+            .board-container {
+                border: solid 5px black;
+            }
+
+            .board-table {
+                border : solid 3px grey;
+                width: 80%;
+                margin: auto;
+            }
+
+            .board-table td {
+                border: solid 2px blue;
+                height: 45px;
+                text-align: center;
+                font-size: 200%;
+            }
+
+            .board-footer {
+                text-align: center;
+                border: solid black 5px;
+            }
+
+            .draw-list {
+                /*width: 70%;*/
+                margin: auto;
+                text-align: center;
+                display: inline-block;
+            }
+
+            .draw-element {
+                border: solid 2px blue;
+                width: 50px;
+                height: 50px;
+                margin: 10px 10px 5px 10px;
+                display: inline-block;
+            }
+
+            .timer {
+                padding: 15px;
+                background-color: lightgray;
+                display: inline-block;
+            }
+
+            .timer-label {
+                font-weight: bold;
+                /*font-size: 20px;*/
+            }
+
+            .timer-value {
+                /*font-size: 25px;*/
+            }
+
+            .board-submit {
+                display: inline-block;
+                background: lightgray;
+                padding: 15px;
+                height: 100%;
+            }
+
+            .chat, .chat-prive {
+                background-color: lightgray;
+                position: fixed;
+                width: 300px;
+                height: 250px;
+
+            }
+            .chat {
+                bottom : 0;
+                left : 0;
+            }
+
+            .chat-prive {
+                top: 0;
+                left: 0;
+            }
+
+            .chat-header:hover {
+                cursor: grabbing;
+            }
+
+            .chat-header {
+
+                width: 100%;
+                /*height: 10%;*/
+                display: block;
+                margin: 5px 0 5px 5px;
+                padding: 0;
+                /*border: solid black 3px;*/
+
+            }
+
+            .messages-container {
+                display: block;
+                overflow-y: scroll;
+                height: 73%;
+            }
+
+            .chat form {
+                display: block;
+                border: solid 1px black;
+                height: 30px;
+            }
+
+            #messages {
+                list-style-type: none;
+                margin: 0;
+                padding: 0;
+                width: 100%;
+            }
+
+            .message {
+                display: block;
+                border: solid 1px black;
+            }
+
+            .chat form button {
+                position: absolute;
+                right: 0;
+                display: inline-block;
+                width: 50px;
+            }
+
+            .chat form input {
+              display: inline-block;
+              width: calc(100% - 50px);
+            }
+
+            .chat li:nth-child(odd) { background: #eee; }
+
+
+            .player-list {
+                position: fixed;
+                top: 0;
+                right: 0;
+            }
+
+            .player-list ul {
+                list-style-type: none;
+                display: block;
+            }
+
+            .player-list li:nth-child(odd) { background: #eee; }
+        </style>
+
+    </head>
+    <body onload="init();">
+        <!-- Connexion -->
+        <form action="" id="connectionRequestForm">
+            <input placeholder="Adresse du serveur" id="serverAdress" name="serverAdress" type="text" required />
+            <input placeholder="Port" id="port" name="port" type="number" required />
+            <input placeholder="Pseudo" id="pseudo" name="pseudo" type="text" required />
+            <button>Connexion</button>
+        </form>
+
+        <!-- Board -->
+        <div class="board-container" style="display: none">
+            <table class="board-table" id="board-table">
+            </table>
+
+            <div class="board-footer">
+                <div class="timer">
+                    <p>
+                        <span class="timer-label">Temps restant </span><br /><span class="timer-value">5:00</span>
+                    </p>
+                </div>
+                <div class="draw-list">
+                </div>
+                <div class="board-submit">
+                    <button>Soumettre plateau</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat (miaou) -->
+        <div class="chat">
+            <h3 class="chat-header">Chat</h3>
+            <div class="messages-container">
+                <ul id="messages">
+                    <li class="message">
+                        Message 1
+                    </li>
+                    <li class="message">
+                        Message 2
+                    </li>
+
+                </ul>
+            </div>
+            <form action="">
+                <input placeholder="Écrits de bails ici." id="chat-input" autocomplete="off" /><button>Send</button>
+            </form>
+        </div>
+
+        <div class="chat chat-prive">
+            <h3 class="chat-header">/w Player 2</h3>
+            <div class="messages-container">
+                <ul id="messages">
+                    <li class="message">
+                        Message 1
+                    </li>
+                    <li class="message">
+                        Message 2
+                    </li>
+
+                </ul>
+            </div>
+            <form action="">
+                <input placeholder="Écrits de bails ici." id="chat-input" autocomplete="off" /><button>Send</button>
+            </form>
+        </div>
+
+        <!-- Player list -->
+        <div class="player-list">
+            <h3>Liste des joueurs</h3>
+            <ul>
+                <li>
+                    Player 1
+                </li>
+                <li>
+                    Player 2
+                </li>
+                <li>
+                    Player 3
+                </li>
+            </ul>
+            <h4>Total : 3/8</h4>
+        </div>
+
+        <!-- Scripts -->
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+        <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+        <script>
+
+        const BOARD_SIZE = 15;
+        const DRAW_SIZE = 7;
+
+        function init() {
+            console.log("init");
+            generateBoard();
+            generateDrawList();
+            $('.board-container').show();
+            $('.chat').draggable();
+        }
+
+
+        function generateBoard() {
+            for (var i = 0; i < BOARD_SIZE; i++) {
+                $('#board-table').append($('<tr>').attr('id', 'row-' + i));
+                for (var j = 0; j < BOARD_SIZE; j++) {
+                    $('#row-' + i).append($('<td>').attr('id', 'col-' + j).text('0'));
+                }
+            }
+        }
+
+        function generateDrawList() {
+            for (var i = 0; i < DRAW_SIZE; i++) {
+                $('.draw-list').append($('<span>').attr('class', 'draw-element'));
+            }
+        }
+
+
+        $(function () {
+            var socket = io();
+
+            $('#connectionRequestForm').submit(function(){
+                console.log("emission");
+                console.log($('#serverAdress').val());
+                console.log($('#port').val());
+                socket.emit('serverConnectionRequest', $('#serverAdress').val(), $('#port').val());
+                return false;
+            });
+
+            socket.on('connectionRequestAnswer', function(msg) {
+                 $('body').append($('<li>').text(msg));
+                console.log(msg);
+            });
+        });
+
+        </script>
+    </body>
+
+</html>

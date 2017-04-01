@@ -1,0 +1,9 @@
+{
+  "name": "client_scrabble",
+  "version": "0.0.1",
+  "description": "Client de scrabble pour projet PC2R.",
+  "dependencies": {
+    "express": "^4.15.2",
+    "socket.io": "^1.7.3"
+  }
+}
