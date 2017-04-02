@@ -1,5 +1,9 @@
 package core;
 
+import game.Scrabble;
+import game.pouches.RandomPouch;
+import game.wordchecker.DumbWordChecker;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
@@ -9,13 +13,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MotherBrain implements Runnable {
-	
 	private ExecutorService pool;
 	private int playerLimit;
 	private ServerSocket socket;
 	private ThreadBrodcaster broadcaster;
 	private Thread threadBroadcaster;
 	private ArrayList<ThreadClient> threadsClient;
+	
+	private Scrabble scrabble;
+	
 	
 	public MotherBrain(int playerLimit, ServerSocket socket) {
 		this.playerLimit = playerLimit;
@@ -29,6 +35,7 @@ public class MotherBrain implements Runnable {
 	@Override
 	public void run() {
 		threadBroadcaster.start();
+		initScrabble();
 		
 		Socket crtSocket;
 		while (true) { //TODO
@@ -41,7 +48,6 @@ public class MotherBrain implements Runnable {
 					ThreadClient client = new ThreadClient(crtSocket, this);
 					threadsClient.add(client);
 					pool.execute(client);
-					System.out.println("Ajout threadClient");
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -68,23 +74,43 @@ public class MotherBrain implements Runnable {
 				return false;
 		}
 		
+		if (!scrabble.isUserNameAvailable(username))
+			return false;
+		
+		if (!scrabble.hasPlayers()) 
+			scrabble.startGame();
+		
+		scrabble.addPlayer(username);
+		
 		threadClient.setUsername(username);
+		
+		
 		return true;
 	}
 
-	public String[] etatSession() {
-		// TODO Auto-generated method stub
-		String session[] = {"TODO" };
-		return session;
+	public void initScrabble() {
+		scrabble = new Scrabble(new RandomPouch(Scrabble.DEFAULT_POUCH_SIZE), new DumbWordChecker());
+	}
+	
+	public synchronized String[] sessionState() {
+		return scrabble.getCompleteGameState();
 	}
 
 	public void signalNouveauUser(String username) {
 		broadcaster.broadcast("CONNECTE", username);
 	}
 
-	public void deconnexionClient(ThreadClient threadClient, String username) {
+	public synchronized void deconnexionClient(ThreadClient threadClient, String username) {
 		broadcaster.broadcast("DECONNEXION", username);
 		threadsClient.remove(threadClient);
+		
+		scrabble.removePlayer(username);
+		
+		if (threadsClient.size() == 0) 
+			scrabble.stopGame();
+		
+		
+		
 	}
 
 	public void envoiMessage(String msg, String username) {

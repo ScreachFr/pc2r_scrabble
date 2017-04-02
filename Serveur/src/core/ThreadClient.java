@@ -6,48 +6,57 @@ import java.net.Socket;
 import java.util.Scanner;
 
 public class ThreadClient implements Runnable {
-
+	private static int staticId = 0;
+	
 	private Socket socket;
 	private String username;
 	private MotherBrain motherBrain;
 	private PrintWriter writer;
 	private boolean finie = false;
-
+	private int id;
+	
 	public ThreadClient(Socket socket, MotherBrain motherBrain) {
 		this.socket = socket;
 		username = null;
 		this.motherBrain = motherBrain;
+		id = staticId++;
 	}
 
 	@Override
 	public void run() {
+		System.out.println(socket.getInetAddress() + " : tentative connexion.");
+		
 		try {
 			Scanner scan = new Scanner(socket.getInputStream());
-			this.writer = new PrintWriter(socket.getOutputStream());
-			while (! finie) {
+			writer = new PrintWriter(socket.getOutputStream());
+			
+			while (!finie) {
 				traiterCommande(scan.nextLine());
 			}
+			
 			scan.close();
 			writer.close();
 			socket.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
 		System.out.println("Au revoir " + username);
 	}
 
 	private void traiterCommande(String nextLine) {
 		String[] args = nextLine.split("/");
-		if (! isConnected()) {
+		if (args.length == 0) {
+			envoyerMessage("ERREUR", "tooFewArgs");
+		} else if (!isConnected()) {
 			switch (args[0]) {
 			case "CONNEXION":
 				connexionClient(args);
 				break;
 			default:
-				System.out.println("Commande Inconnue ou non disponible ¯\\_(ツ)_/¯");
+				System.out.println("Commande Inconnue ou non disponible");
 			}
-		}
-		else {
+		} else {
 			switch (args[0]) {
 			case "SORT":
 				deconnexionClient(args);
@@ -62,14 +71,14 @@ public class ThreadClient implements Runnable {
 				messagePriveChat(args);
 				break;
 			default:
-				System.out.println("Commande Inconnue ¯\\_(ツ)_/¯");
+				System.out.println("Commande Inconnue.");// j'ai du supprimer le smiley, il cassait mon eclipse :(
 			}
 		}
 	}
 
 	private void messagePriveChat(String[] args) {
 		if (args.length >= 3) {
-			motherBrain.envoiMessagePrive(args[1], username, args[2]);
+			motherBrain.envoiMessagePrive(args[2], username, args[1]);
 		}
 		else {
 			System.out.println("Pas de message a envoye");
@@ -110,20 +119,20 @@ public class ThreadClient implements Runnable {
 	private void connexionClient(String[] args) {
 		System.out.println("Connexion Client");
 		if (args.length < 2)  {
-			refusConnexion();
+			refusConnexion("Pas assez d'arguments");
 			return;
 		}
 		String username = args[1];
 		if (motherBrain.reserverUsername(username, this)) {
 			bienvenueClient();
 			motherBrain.signalNouveauUser(username);
+		} else {
+			refusConnexion("Erreur lors de la réservation du pseudonyme");
 		}
-		else
-			refusConnexion();
 	}
 
 	private void bienvenueClient() {
-		String[] pTSPT = motherBrain.etatSession();
+		String[] pTSPT = motherBrain.sessionState();
 		envoyerMessage("BIENVENUE", pTSPT);
 	}
 
@@ -131,9 +140,12 @@ public class ThreadClient implements Runnable {
 		envoyerMessage("REFUS");
 	}
 
+	private void refusConnexion(String why) {
+		envoyerMessage("REFUS", why);
+	}
+	
 	public synchronized void envoyerMessage(String domaine, String...strings) {
 		String chaine = String.join("/", strings);
-		System.out.println(chaine);
 		if (strings == null || strings.length == 0)
 			this.writer.println(domaine + "/");
 		else
@@ -151,6 +163,10 @@ public class ThreadClient implements Runnable {
 	
 	public boolean isConnected() {
 		return username != null;
+	}
+	
+	public int getId() {
+		return id;
 	}
 
 }
