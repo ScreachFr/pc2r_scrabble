@@ -48,6 +48,8 @@
                 height: 50px;
                 margin: 10px 10px 5px 10px;
                 display: inline-block;
+                text-align: center;
+                font-size: 200%;
             }
 
             .timer {
@@ -77,6 +79,7 @@
                 position: fixed;
                 width: 300px;
                 height: 250px;
+                border-radius: 5px;
 
             }
             .chat {
@@ -94,13 +97,11 @@
             }
 
             .chat-header {
-
                 width: 100%;
                 /*height: 10%;*/
                 display: block;
                 margin: 5px 0 5px 5px;
                 padding: 0;
-                /*border: solid black 3px;*/
 
             }
 
@@ -112,8 +113,9 @@
 
             .chat form {
                 display: block;
-                border: solid 1px black;
+                /*border: solid 1px black;*/
                 height: 30px;
+                margin-top: 3px;
             }
 
             #messages {
@@ -125,47 +127,99 @@
 
             .message {
                 display: block;
-                border: solid 1px black;
+                padding-left: 5px;
+                /*border: solid 1px black;*/
+            }
+
+            .message-notice {
+                font-style: italic;
             }
 
             .chat form button {
                 position: absolute;
                 right: 0;
                 display: inline-block;
-                width: 50px;
+                width: 70px;
+                height: 30px;
             }
 
             .chat form input {
               display: inline-block;
-              width: calc(100% - 50px);
+              width: calc(100% - 70px);
+              height: 30px;
             }
 
             .chat li:nth-child(odd) { background: #eee; }
 
 
             .player-list {
+                background: lightgray;
                 position: fixed;
                 top: 0;
                 right: 0;
+                padding: 0px 15px 15px 15px;
+                border-radius: 5px;
+                text-align: left;
             }
 
             .player-list ul {
                 list-style-type: none;
                 display: block;
+                overflow-y: scroll;
+                margin: 0;
+                padding: 0;
             }
 
             .player-list li:nth-child(odd) { background: #eee; }
+
+            .user {
+                font-weight: bold;
+            }
+
+            .user:hover {
+                text-decoration: underline;
+                font-weight: bolder;
+                cursor: pointer;
+            }
+
+            #connectionButton {
+                margin-top: 15px;
+                text-align: right;
+            }
+
+            #alert-placeholder {
+                width: 600px;
+                margin: auto;
+            }
+
         </style>
 
     </head>
     <body onload="init();">
+
         <!-- Connexion -->
-        <form action="" id="connectionRequestForm">
-            <input placeholder="Adresse du serveur" id="serverAdress" name="serverAdress" type="text" required />
-            <input placeholder="Port" id="port" name="port" type="number" required />
-            <input placeholder="Pseudo" id="pseudo" name="pseudo" type="text" required />
-            <button>Connexion</button>
-        </form>
+        <div class="modal fade" id="connectionModal" tabindex="-1" role="dialog" >
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title" id="myModalLabel">Se connecter à un serveur</h4>
+                    </div>
+                    <form action="" id="connectionRequestForm">
+                        <div class="modal-body">
+                            <input placeholder="Adresse du serveur" id="serverAdress" name="serverAdress" type="text" required />
+                            <input placeholder="Port" id="port" name="port" type="number" required />
+                            <input placeholder="Pseudo" id="pseudo" name="pseudo" type="text" required />
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-primary" id="connectionButton">Se connecter</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div id="alert-placeholder">
+
+            </div>
+        </div>
 
         <!-- Board -->
         <div class="board-container" style="display: none">
@@ -175,7 +229,7 @@
             <div class="board-footer">
                 <div class="timer">
                     <p>
-                        <span class="timer-label">Temps restant </span><br /><span class="timer-value">5:00</span>
+                        </span><span class="timer-label">Temps restant </span><br /><span class="timer-value">5:00</span> <span class="glyphicon glyphicon-time" aria-hidden="true">
                     </p>
                 </div>
                 <div class="draw-list">
@@ -188,24 +242,18 @@
 
         <!-- Chat (miaou) -->
         <div class="chat">
-            <h3 class="chat-header">Chat</h3>
+            <h3 class="chat-header"><span class="glyphicon glyphicon-comment" aria-hidden="true"></span> Chat</h3>
             <div class="messages-container">
                 <ul id="messages">
-                    <li class="message">
-                        Message 1
-                    </li>
-                    <li class="message">
-                        Message 2
-                    </li>
-
                 </ul>
             </div>
-            <form action="">
-                <input placeholder="Écrits de bails ici." id="chat-input" autocomplete="off" /><button>Send</button>
+            <form id="global-chat" action="">
+                <input placeholder="Écrits des bails ici." id="chat-input" autocomplete="off" />
+                <button type="submit">Envoyer</button>
             </form>
         </div>
 
-        <div class="chat chat-prive">
+        <!-- <div class="chat chat-prive">
             <h3 class="chat-header">/w Player 2</h3>
             <div class="messages-container">
                 <ul id="messages">
@@ -215,26 +263,25 @@
                     <li class="message">
                         Message 2
                     </li>
-
                 </ul>
             </div>
             <form action="">
-                <input placeholder="Écrits de bails ici." id="chat-input" autocomplete="off" /><button>Send</button>
+                <input placeholder="Écrits des bails ici." id="chat-input" autocomplete="off" /><button type="submit">Send</button>
             </form>
-        </div>
+        </div> -->
 
         <!-- Player list -->
         <div class="player-list">
             <h3>Liste des joueurs</h3>
             <ul>
                 <li>
-                    Player 1
+                    <span class="user">Alexandre</span>
                 </li>
                 <li>
-                    Player 2
+                    <span class="user">Player 1</span>
                 </li>
                 <li>
-                    Player 3
+                    <span class="user">Player 2</span>
                 </li>
             </ul>
             <h4>Total : 3/8</h4>
@@ -244,18 +291,24 @@
         <script src="/socket.io/socket.io.js"></script>
         <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
         <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
         <script>
 
         const BOARD_SIZE = 15;
         const DRAW_SIZE = 7;
 
+        const CONNECTION_ERROR_ALERT = '<div class="alert alert-info alert-dismissible" id="connexionFailureAlert" role="alert"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button><strong>Échec de la connexion</strong></div>';
+
         function init() {
-            console.log("init");
+            $("#connectionModal").modal('show');
+
             generateBoard();
             generateDrawList();
             $('.board-container').show();
             $('.chat').draggable();
+
         }
+
 
 
         function generateBoard() {
@@ -269,26 +322,127 @@
 
         function generateDrawList() {
             for (var i = 0; i < DRAW_SIZE; i++) {
-                $('.draw-list').append($('<span>').attr('class', 'draw-element'));
+                $('.draw-list').append($('<span>').attr('class', 'draw-element').text('0'));
             }
         }
 
 
         $(function () {
             var socket = io();
+            var username;
 
+            //Soummission du modal de connexion.
             $('#connectionRequestForm').submit(function(){
-                console.log("emission");
-                console.log($('#serverAdress').val());
-                console.log($('#port').val());
-                socket.emit('serverConnectionRequest', $('#serverAdress').val(), $('#port').val());
+                $('#connectionButton').button('loading');
+                username = $('#pseudo').val();
+                socket.emit('serverConnectionRequest', $('#serverAdress').val(), $('#port').val(),$('#pseudo').val());
+
                 return false;
             });
 
-            socket.on('connectionRequestAnswer', function(msg) {
-                 $('body').append($('<li>').text(msg));
-                console.log(msg);
+
+            $('#global-chat').submit(function() {
+                if ($('#global-chat #chat-input').val() === "")
+                    return false;
+
+                var str = 'ENVOI/' + htmlEntities($('#global-chat #chat-input').val()) + "/\n";
+                socket.emit('send', str);
+                $('#global-chat #chat-input').val("");
+
+                return false;
             });
+
+            //Réponse à la soummission du modal de connxion par le socket.
+            socket.on('connectionRequestAnswer', function(msg, code) {
+
+                $('#connectionButton').button('reset');
+
+                if (code === 0) {
+                    initBoard();
+                    $('#connectionModal').modal('hide');
+
+                } else {
+                    $('#alert-placeholder').append(newErrorAlert(msg));
+                }
+            });
+
+            socket.on('receive', function (data) {
+                console.log("received : " + data);
+                var args = data.split("/");
+                console.log(args[0]);
+
+                switch (args[0]) {
+                    case 'RECEPTION':
+                        receptionChat(args);
+                        break;
+                    case 'BIENVENUE' :
+                        bienvenue(args);
+                        break;
+                    default:
+                        console.log("Unhandled command : " + args[0]);
+                }
+
+
+            });
+
+
+            function initBoard() {
+                socket.emit('send', 'CONNEXION/' + username + "/\n");
+            }
+
+            function bienvenue(args) {
+                var board = args[1];
+                var draw = args[2];
+                var scores = args[3];
+                var state = args[4];
+                var temps = args[5];
+
+                parseBoardState(board);
+
+            }
+
+            function parseBoardState(board) {
+                for(i = 0; i < board.length; i++) {
+                    c = board[i];
+                    x = i % BOARD_SIZE;
+                    y = (i / BOARD_SIZE) | 0;
+                    if (c != '0') {
+                        $('#row-' + y + " #col-" + x).text(c);
+                    }
+                }
+
+            }
+
+            function receptionChat(args) {
+                var content = args[1];
+                var author = args[2];
+                $('.chat #messages').append(newChatMessage(author, content));
+                $('.messages-container').scrollTop($('.chat #messages').height());
+            }
+
+            function newChatMessage(user, content) {
+                return $('<li class="message">').append(getUserLink(user), '<br />', content);
+            }
+
+            function newChatNotice(notice) {
+                return $('<li class="message">').text(notice);
+            }
+
+            function getUserLink(username) {
+                return $('<span class="user">').text(username);
+            }
+
+            function newErrorAlert(notice) {
+                var result;
+                result = $('<div class="alert alert-info alert-dismissible" id="connexionFailureAlert" role="alert">');
+                result.html('<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button><strong>Échec de la connexion</strong> ' + notice);
+                return result;
+            }
+
+            function htmlEntities(str) {
+                return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/\//g, ':slash de gars qui veut foutre la merde:');
+            }
+
         });
 
         </script>
