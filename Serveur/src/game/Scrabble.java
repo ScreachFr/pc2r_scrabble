@@ -6,15 +6,12 @@ import game.pouches.RandomPouch;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 import javafx.util.Pair;
 
 public class Scrabble {
-	private final static int BOARD_SIZE = 15;
+	private final static int BOARD_SIZE = 3; //XXX Était à 15 XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX
 	private final static int DRAW_SIZE = 7;
 	private final static Character NULL_CHAR = '0';
 	
@@ -105,7 +102,18 @@ public class Scrabble {
 		if (!checkHoles(newLetters, proposition, isVertical)) 
 			throw new WordPlacementException(Why.INVALID_PROPOSITION);
 		
+		ArrayList<Pair<String, ProposedLetter[]>> solutions = findNewWords(newLetters, isVertical, proposition);
 		
+//		if (plateauNeContientPasDeMots) { // TODO : tester (et ajouter une identification qu'il n'y a qu'un mot)
+//			boolean useBoardLetter = false; // Sert à indiquer si aucune mot n'utilise des lettres déjà sur le plateau
+//			for (Pair<String, ProposedLetter[]> pair : solutions) {
+//				useBoardLetter = pair.getKey().length() == pair.getValue().length;
+//				if (useBoardLetter)
+//					break;
+//			}
+//		}
+//		if (! useBoardLetter)
+//			throw new WordPlacementException(Why.INVALID_PROPOSITION);
 		
 	}
 	
@@ -243,35 +251,52 @@ public class Scrabble {
 		return true;
 	}
 	
-	
-	public ArrayList<Pair<String, ProposedLetter[]>> findNewWords(ArrayList<ProposedLetter> newLetters, boolean direction, char[][] proposedBoard) {
+	/**
+	 * Retourne les couples (mots crées sur le plateau ; lettre proposées utilisées)
+	 * @param newLetters Lettres proposées
+	 * @param direction Lettres placés à la verticale ?
+	 * @param proposedBoard Plateau proposé
+	 * @return
+	 * @throws WordPlacementException - Trou dans le plateau
+	 * TODO : vérifier cas d'erreurs
+	 */
+	public ArrayList<Pair<String, ProposedLetter[]>> 
+	findNewWords(ArrayList<ProposedLetter> newLetters, boolean direction, char[][] proposedBoard) throws WordPlacementException {
 		ArrayList<Pair<String, ProposedLetter[]>> newWords = new ArrayList<>();
-		int min = Integer.MAX_VALUE, max = -1;
 		if (direction) {
-			for (ProposedLetter p : newLetters) {
-				if (p.getY() > max)
-					max = p.getY();
-				if (p.getY() < min)
-					min = p.getY();
+			int constY = newLetters.get(0).getY();
+			for (ProposedLetter letter : newLetters) { // verification si c'est intéressant de chercher un mot utilisant une seule des lettres proposées
+				if ((constY != 0 && board[constY - 1][letter.getX()] != NULL_CHAR) ||
+					(constY != BOARD_SIZE - 1 && board[constY + 1][letter.getX()] != NULL_CHAR)) {
+					ProposedLetter[] l = { letter };
+					newWords.add(new Pair<String, ProposedLetter[]>(findHorizontalWord(l, letter.getX()), l));
+				}
 			}
+			ProposedLetter[] nL = new ProposedLetter[newLetters.size()];
+			newLetters.toArray(nL);
+			newWords.add(new Pair<String, ProposedLetter[]>(findVerticalWord(nL, constY), nL));
+		}
+		else {
 			int constX = newLetters.get(0).getX();
 			for (ProposedLetter letter : newLetters) {
-				if (constX != 0 && board[constX - 1][letter.getY()] != NULL_CHAR ||
-						constX != BOARD_SIZE - 1 && board[constX + 1][letter.getY()] != NULL_CHAR) {
+				if ((constX != 0 && board[constX - 1][letter.getY()] != NULL_CHAR) ||
+					(constX != BOARD_SIZE - 1 && board[constX + 1][letter.getY()] != NULL_CHAR)) {
 					ProposedLetter[] l = { letter };
 					newWords.add(new Pair<String, ProposedLetter[]>(findHorizontalWord(l, letter.getY()), l));
 				}
 			}
-			newWords.add(new Pair<String, ProposedLetter[]>(findVerticalWord(
-					(ProposedLetter[]) newLetters.toArray(new ProposedLetter[newLetters.size()]), x, y)), constX), newLetters));
+			ProposedLetter[] nL = new ProposedLetter[newLetters.size()];
+			newLetters.toArray(nL);
+			newWords.add(new Pair<String, ProposedLetter[]>(findVerticalWord(nL, constX), nL));
 		}
 		return newWords;
 	}
 	
-	private String findVerticalWord(ProposedLetter[] l, int x) {
+	private String findVerticalWord(ProposedLetter[] l, int x) throws WordPlacementException { //TODO : regarder si les mots ont utilise d'autres lettres ?
 		String newWord = "";
 		boolean isNewWord = false;
 		ProposedLetter curLetter;
+		int counter = l.length; // pour verifier si il y a des trous (= toutes les lettres sont utilises)
 		for (int y = 0 ; y < BOARD_SIZE ; y++) {
 			curLetter = findLetter(l, x, y);
 			if (board[x][y] == NULL_CHAR && curLetter == null) {
@@ -284,15 +309,23 @@ public class Scrabble {
 			else {
 				newWord += curLetter.getLetter();
 				isNewWord = true;
+				counter--;
 			}
+			System.out.println(x + ";" + y);
+			if (curLetter != null)
+				System.out.println(curLetter.getLetter());
+			System.out.println(counter);
 		}
+		if (counter != 0)
+			throw new WordPlacementException(Why.INVALID_PROPOSITION);
 		return newWord;
 	}
 
-	private String findHorizontalWord(ProposedLetter[] l, int y) {
+	private String findHorizontalWord(ProposedLetter[] l, int y) throws WordPlacementException {
 		String newWord = "";
 		boolean isNewWord = false;
 		ProposedLetter curLetter;
+		int counter = l.length;
 		for (int x = 0 ; x < BOARD_SIZE ; x++) {
 			curLetter = findLetter(l, x, y);
 			if (board[x][y] == NULL_CHAR && curLetter == null) {
@@ -305,8 +338,11 @@ public class Scrabble {
 			else {
 				newWord += curLetter.getLetter();
 				isNewWord = true;
+				counter--;
 			}
 		}
+		if (counter != 0)
+			throw new WordPlacementException(Why.INVALID_PROPOSITION);
 		return newWord;
 	}
 	
@@ -389,6 +425,22 @@ public class Scrabble {
 		letters.add(new ProposedLetter('C', 3, 30));
 		letters.add(new ProposedLetter('D', 1, 3));
 		
+		ArrayList<ProposedLetter> validLetters = s.findNewLetters(b1);
 		
+		for (ProposedLetter proposedLetter : validLetters)
+			System.out.println(proposedLetter.getX() + ";" + proposedLetter.getY() + ":" + proposedLetter.getLetter());
+		
+		try {
+			ArrayList<Pair<String, ProposedLetter[]>> solutions = s.findNewWords(validLetters, s.isPropositionVertical(validLetters), b1);
+			System.out.println("OK");
+			System.out.println(solutions.size());
+			for (Pair<String, ProposedLetter[]> pair : solutions) {
+				System.out.print(pair.getKey());
+				for (ProposedLetter pL : pair.getValue())
+					System.out.println("(" + pL.getLetter() + " : " + pL.getX() + ";" + pL.getY() + ")");
+			}
+		} catch (WordPlacementException e) {
+			e.printStackTrace();
+		}
 	}
 }
