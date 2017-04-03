@@ -69,7 +69,6 @@ io.on('connection', function(socket){
 });
 
 
-
 // client.connect(42666, '127.0.0.1', function() {
 // 	console.log('Connected');
 // 	client.write('Hello, server! Love, Client.');

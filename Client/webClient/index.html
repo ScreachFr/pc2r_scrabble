@@ -80,7 +80,7 @@
                 width: 300px;
                 height: 250px;
                 border-radius: 5px;
-
+                padding: 0 5px 10px 5px;
             }
             .chat {
                 bottom : 0;
@@ -88,7 +88,7 @@
             }
 
             .chat-prive {
-                top: 0;
+                top: 50%;
                 left: 0;
             }
 
@@ -116,6 +116,7 @@
                 /*border: solid 1px black;*/
                 height: 30px;
                 margin-top: 3px;
+                text-align: center;
             }
 
             #messages {
@@ -136,10 +137,10 @@
             }
 
             .chat form button {
-                position: absolute;
-                right: 0;
+                /*position: absolute;
+                right: 0;*/
                 display: inline-block;
-                width: 70px;
+                width: 65px;
                 height: 30px;
             }
 
@@ -168,6 +169,7 @@
                 overflow-y: scroll;
                 margin: 0;
                 padding: 0;
+                height: 150px;
             }
 
             .player-list li:nth-child(odd) { background: #eee; }
@@ -229,7 +231,7 @@
             <div class="board-footer">
                 <div class="timer">
                     <p>
-                        </span><span class="timer-label">Temps restant </span><br /><span class="timer-value">5:00</span> <span class="glyphicon glyphicon-time" aria-hidden="true">
+                    </span><span class="timer-label">Temps restant </span><br /><span id="timer-value">0</span> <span class="glyphicon glyphicon-time" aria-hidden="true">
                     </p>
                 </div>
                 <div class="draw-list">
@@ -241,7 +243,7 @@
         </div>
 
         <!-- Chat (miaou) -->
-        <div class="chat">
+        <div id="global-chat-window" class="chat">
             <h3 class="chat-header"><span class="glyphicon glyphicon-comment" aria-hidden="true"></span> Chat</h3>
             <div class="messages-container">
                 <ul id="messages">
@@ -253,38 +255,13 @@
             </form>
         </div>
 
-        <!-- <div class="chat chat-prive">
-            <h3 class="chat-header">/w Player 2</h3>
-            <div class="messages-container">
-                <ul id="messages">
-                    <li class="message">
-                        Message 1
-                    </li>
-                    <li class="message">
-                        Message 2
-                    </li>
-                </ul>
-            </div>
-            <form action="">
-                <input placeholder="Écrits des bails ici." id="chat-input" autocomplete="off" /><button type="submit">Send</button>
-            </form>
-        </div> -->
-
         <!-- Player list -->
         <div class="player-list">
             <h3>Liste des joueurs</h3>
-            <ul>
-                <li>
-                    <span class="user">Alexandre</span>
-                </li>
-                <li>
-                    <span class="user">Player 1</span>
-                </li>
-                <li>
-                    <span class="user">Player 2</span>
-                </li>
+            <ul id="player-list">
+
             </ul>
-            <h4>Total : 3/8</h4>
+            <h4>Round : <span id="round-number">-</span></h4>
         </div>
 
         <!-- Scripts -->
@@ -293,6 +270,8 @@
         <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
         <script>
+        jQuery.fn.exists = function(){return ($(this).length > 0);}
+
 
         const BOARD_SIZE = 15;
         const DRAW_SIZE = 7;
@@ -306,7 +285,6 @@
             generateDrawList();
             $('.board-container').show();
             $('.chat').draggable();
-
         }
 
 
@@ -322,19 +300,30 @@
 
         function generateDrawList() {
             for (var i = 0; i < DRAW_SIZE; i++) {
-                $('.draw-list').append($('<span>').attr('class', 'draw-element').text('0'));
+                $('.draw-list').append($('<span>').attr('class', 'draw-element').attr('id', 'draw-' + i));
             }
         }
 
-
         $(function () {
             var socket = io();
-            var username;
+            var clientUsername;
+            var connectedPlayers = [];
+            var currentState;
+
+            setInterval(function() {
+                var timerValue = $('#timer-value').text();
+                if (timerValue > 0)
+                    timerValue--;
+
+                $('#timer-value').text(timerValue);
+
+            } ,1000);
+
 
             //Soummission du modal de connexion.
             $('#connectionRequestForm').submit(function(){
                 $('#connectionButton').button('loading');
-                username = $('#pseudo').val();
+                clientUsername = $('#pseudo').val();
                 socket.emit('serverConnectionRequest', $('#serverAdress').val(), $('#port').val(),$('#pseudo').val());
 
                 return false;
@@ -359,6 +348,7 @@
 
                 if (code === 0) {
                     initBoard();
+                    connectedPlayers.push(clientUsername);
                     $('#connectionModal').modal('hide');
 
                 } else {
@@ -375,8 +365,17 @@
                     case 'RECEPTION':
                         receptionChat(args);
                         break;
+                    case 'PRECEPTION':
+                        receptionChatPrive(args);
+                        break;
                     case 'BIENVENUE' :
                         bienvenue(args);
+                        break;
+                    case 'CONNECTE':
+                        connecte(args);
+                        break;
+                    case 'DECONNEXION':
+                        deconnexion(args);
                         break;
                     default:
                         console.log("Unhandled command : " + args[0]);
@@ -387,7 +386,24 @@
 
 
             function initBoard() {
-                socket.emit('send', 'CONNEXION/' + username + "/\n");
+                socket.emit('send', 'CONNEXION/' + clientUsername + "/\n");
+            }
+
+            function deconnexion(args) {
+                $('#li-' + args[1]).remove();
+                $('#mp-' + args[1]).remove();
+                var index = connectedPlayers.indexOf(args[1]);
+                if (index != undefined)
+                    connectedPlayers.splice(index, index);
+
+            }
+
+            function connecte(args) {
+                if (!connectedPlayers.includes(args[1])) {
+                    $('#player-list').append($('<li id="li-' + args[1] + '">').append(getUserLink(args[1], true), ' 0'));
+                    connectedPlayers.push(args[1]);
+                }
+
             }
 
             function bienvenue(args) {
@@ -397,8 +413,29 @@
                 var state = args[4];
                 var temps = args[5];
 
-                parseBoardState(board);
+                currentState = state;
+                $('#timer-value').text(temps);
 
+                parseBoardState(board);
+                parseDraw(draw);
+                parseScores(scores);
+            }
+
+            function parseScores(scores) {
+                var split = scores.split(/\*/g);
+                $('#round-number').text(split[0]);
+                for (i = 1; i < split.length; i+=2) {
+                    $('#player-list').append($('<li id="li-' + split[i] + '" >').append(getUserLink(split[i], true), " " + split[i+1]));
+                    if (split[i] != clientUsername)
+                        connectedPlayers.push(split[i]);
+                }
+
+            }
+
+            function parseDraw(draw) {
+                for (i = 0; i < draw.length; i++) {
+                    $('#draw-' + i).text(draw[i]);
+                }
             }
 
             function parseBoardState(board) {
@@ -416,8 +453,25 @@
             function receptionChat(args) {
                 var content = args[1];
                 var author = args[2];
-                $('.chat #messages').append(newChatMessage(author, content));
-                $('.messages-container').scrollTop($('.chat #messages').height());
+                $('#global-chat-window #messages').append(newChatMessage(author, content));
+                $('#global-chat-window .messages-container').scrollTop($('.global-chat-window #messages').height());
+            }
+
+            function receptionChatPrive(args) {
+                var content = args[1];
+                var author = args[2];
+                var windowId = '#mp-' + author;
+                privateChatWindowVerif(author);
+                $(windowId + ' #messages').append(newChatMessage(author, content));
+                $(windowId + '.messages-container').scrollTop($(windowId + ' #messages').height());
+            }
+
+            function privateChatWindowVerif(author) {
+                if (author == clientUsername) //Ne fait rien quand la cible est soit même.
+                    return;
+                if (!$('#mp-' + author).exists()) {
+                    $('body').append(newPrivateChatWindow(author));
+                }
             }
 
             function newChatMessage(user, content) {
@@ -428,8 +482,22 @@
                 return $('<li class="message">').text(notice);
             }
 
-            function getUserLink(username) {
-                return $('<span class="user">').text(username);
+            function getUserLink(username, removable) {
+                if (removable == undefined)
+                    removable = false;
+
+                if (!removable) {
+                    var result = $('<span class="user link-' + username + '">').text(username);
+                } else {
+                    var result = $('<span class="user link-' + username + ' removable">').text(username);
+                }
+
+
+                result.click(function() {
+                    privateChatWindowVerif(username);
+                });
+
+                return result;
             }
 
             function newErrorAlert(notice) {
@@ -441,6 +509,39 @@
 
             function htmlEntities(str) {
                 return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/\//g, ':slash de gars qui veut foutre la merde:');
+            }
+
+
+            function newPrivateChatWindow(username) {
+                var result = $('<div class="chat chat-prive" id="mp-' + username + '">');
+                var header = $('<h3 class="chat-header">').text('/w ' + username);
+                var mContainer = $('<div class="messages-container">');
+                var messageList = $('<ul id="messages">');
+                var form = $('<form action="">');
+                var input = $('<input placeholder="Écrits des bails ici." id="chat-input" autocomplete="off" />');
+                var btn = $('<button type="submit">').text('Envoyer');
+                // var hidden = $('<input type="hidden" class="mp-username-v" value="' + username + '" />')
+                form.append(input, btn);
+                mContainer.append(messageList);
+                result.append(header, mContainer, form);
+                result.draggable();
+
+                form.submit(function() {
+                    if ($('#mp-' + username + ' #chat-input').val() === "")
+                        return false;
+
+                    var content = htmlEntities($('#mp-' + username + ' #chat-input').val());
+                    var str = 'PENVOI/' + username + '/' + content + "/\n";
+                    socket.emit('send', str);
+
+                    $('#mp-' + username + ' #chat-input').val("");
+                    $('#mp-' + username + ' #messages').append(newChatMessage(clientUsername, content));
+                    $('#mp-' + username + ' .messages-container').scrollTop($('#mp-' + username + ' #messages').height());
+
+                    return false;
+                });
+
+                return result;
             }
 
         });
