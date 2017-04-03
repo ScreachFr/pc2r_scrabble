@@ -1,7 +1,9 @@
 package game;
 
 import game.Pouch.EmptyPouchException;
-import game.WordPlacementException.Why;
+import game.exceptions.PropositionException;
+import game.exceptions.WordPlacementException;
+import game.exceptions.WordPlacementException.Why;
 import game.pouches.RandomPouch;
 
 import java.util.ArrayList;
@@ -20,7 +22,7 @@ public class Scrabble implements Runnable {
 
 	private Lock lock;
 	private Condition nextGameState;
-	
+
 	private Pouch pouch;
 	private WordChecker wordChecker;
 	private char[][] board;
@@ -28,24 +30,26 @@ public class Scrabble implements Runnable {
 
 	private HashMap<String, Integer> scores; //<username, score>
 	private Phase currentPhase;
-	
+
 	private long currentPhaseStartingTime;
 	private int currentRound;
-	
-	
+
+
 	//Trucs qui doivent être thread safe.
 	//TODO Ajouter une liste de proposition. Une proposition doit avoir un état de jeu, un timestamp et des points(?).
-	ArrayList<Proposition> roundProposition;
-	Proposition bestProposition;
-	
+	private ArrayList<Proposition> roundProposition;
+	private Proposition bestProposition;
+	private PropositionValidator propositionValidator;
+	private Thread propositionValidatorThread;
+
 	//cache
 	private String lazyBoardState;
 	private String lazyCurrentDraw;
 	private String lazyScores;
-	
+
 	private final static int fiveMinutes = 300;
 	private final static int twoMinutes = 120;
-	
+
 	private boolean isGameOn; 
 
 	public Scrabble(Pouch pouch, WordChecker wordChecker) {
@@ -56,16 +60,17 @@ public class Scrabble implements Runnable {
 		scores = new HashMap<>();
 		roundProposition = new ArrayList<>();
 		isGameOn = false;
-//		initBoard();
-//		refreshBoardState();
-//		pouch.resetLetters();
+		propositionValidator = new PropositionValidator(this);
+		//		initBoard();
+		//		refreshBoardState();
+		//		pouch.resetLetters();
 	}
 
-	
-	
+
+
 	/**CONTROLEURS**/
-	
-	
+
+
 	public void startGame() {
 		//TODO
 		System.out.println("Début de la partie.");
@@ -74,31 +79,35 @@ public class Scrabble implements Runnable {
 		switchToNextPhase();
 		pouch.resetLetters();
 		currentRound = 1;
+		propositionValidatorThread = new Thread(propositionValidator);
+		propositionValidatorThread.start();
 		try {
 			drawLetters();
 		} catch (EmptyPouchException e) {
 			System.out.println("Pouch vide au début de la partie !");
 		}
+
+
 		isGameOn = true;
 	}
-	
+
 	public void stopGame() {
 		System.out.println("Arrêt de la partie.");
-		
+
 	}
-	
+
 	public void launchRound() {
 		System.out.println("Début du round.");
 	}
-	
+
 	public void stopRound() {
 		System.out.println("Fin du round.");
 	}
-	
-	
+
+
 	@Override
 	public void run() {
-		
+
 		while (isGameOn) {
 			//Début tour
 			//Phase de Recherche
@@ -106,21 +115,21 @@ public class Scrabble implements Runnable {
 			//Phase de résultat
 		}
 	}
-	
+
 	public void switchToNextPhase() {
 		if (currentPhase == null) 
 			currentPhase = Phase.DEB;
-		 else 
+		else 
 			currentPhase = currentPhase.getNext();
-		
+
 		currentPhaseStartingTime = System.currentTimeMillis();
 	}
-	
+
 	/**FIN CONTROLEURS**/
-	
-	
-	
-	
+
+
+
+
 	/**
 	 * Met toutes les cases du plateau de jeu à '0'.
 	 */
@@ -149,16 +158,16 @@ public class Scrabble implements Runnable {
 
 	public synchronized void refreshScore() {
 		lazyScores = currentRound + "";
-		
+
 		for (String username : scores.keySet()) {
 			lazyScores += "*" + username + "*" + scores.get(username);
 		}
 	}
-	
+
 	public String getLazyScores() {
 		return lazyScores;
 	}
-	
+
 	/**
 	 * Car pouvoir observer l'état du plateau en faisant en sorte que ça ressemble à un plateau c'est cool pour debug.
 	 */
@@ -178,13 +187,14 @@ public class Scrabble implements Runnable {
 	 * 		proposé ou les nouveaux mots qu'il engendre n'existe pas. Ou alors ta tentative de triche viens
 	 * 		de lamentablement échouer. 
 	 */
-	public void propose(String proposedBoard) throws WordPlacementException {
-		char[][] proposition = toArray(proposedBoard);
+	public boolean proposeBoard(Proposition proposition) throws WordPlacementException {
+		char[][] parsedProposition = toArray(proposition.getProposition());
+		proposition.setParsedBoard(parsedProposition);
 
-		if (!isPropositionValid(proposition))
+		if (!isPropositionValid(parsedProposition))
 			throw new WordPlacementException(Why.INVALID_PROPOSITION);
 
-		ArrayList<ProposedLetter> newLetters = findNewLetters(proposition);
+		ArrayList<ProposedLetter> newLetters = findNewLetters(parsedProposition);
 
 		// Proposition sans nouvelle lettre.
 		if (newLetters.isEmpty())
@@ -195,14 +205,14 @@ public class Scrabble implements Runnable {
 		//		if (!checkHoles(newLetters, proposition, isVertical)) //TODO : tester qu'on n'en a pas besoin
 		//		throw new WordPlacementException(Why.INVALID_PROPOSITION);
 
-		ArrayList<Pair<String, ProposedLetter[]>> solutions = findNewWords(newLetters, isVertical, proposition);
-		
+		ArrayList<Pair<String, ProposedLetter[]>> solutions = findNewWords(newLetters, isVertical, parsedProposition);
+
 		ArrayList<String> listWords = new ArrayList<>();
 		for (Pair<String, ProposedLetter[]> pair : solutions)
 			listWords.add(pair.getKey());
 		if (!validateMultipleWords(listWords))
 			throw new WordPlacementException(Why.INVALID_PROPOSITION); //TODO : garder le mot qui pose problème
-		
+
 		//		if (plateauNeContientPasDeMots) { // TODO : tester (et ajouter une identification qu'il n'y a qu'un mot)
 		//			boolean useBoardLetter = false; // Sert à indiquer si aucune mot n'utilise des lettres déjà sur le plateau
 		//			for (Pair<String, ProposedLetter[]> pair : solutions) {
@@ -213,9 +223,14 @@ public class Scrabble implements Runnable {
 		//		}
 		//		if (! useBoardLetter)
 		//			throw new WordPlacementException(Why.INVALID_PROPOSITION);
-		
-		int score = findScore(solutions);
 
+
+		proposition.setScore(findScore(solutions));
+		proposition.setValidated(true);
+		
+		roundProposition.add(proposition);
+		
+		return true;
 	}
 
 
@@ -234,6 +249,20 @@ public class Scrabble implements Runnable {
 		}
 
 		return true;
+	}
+
+	public void submitProposition(Proposition proposition) throws PropositionException {
+		if (currentPhase == Phase.REC || currentPhase == Phase.SOU) {
+			propositionValidator.submit(proposition);
+		} else {
+			throw new PropositionException("Vous ne pouvez pas soumettre de proposition maintenant.");
+		}
+	}
+
+	public boolean checkProposition(Proposition p) {
+
+
+		return false;
 	}
 
 	/**
@@ -285,7 +314,7 @@ public class Scrabble implements Runnable {
 
 		return (sameX) ? false : true;
 	}
-	
+
 	public synchronized boolean hasPlayers() {
 		return !scores.isEmpty();
 	}
@@ -295,7 +324,7 @@ public class Scrabble implements Runnable {
 	 * @param letters - Lettres ajoutées par la proposition.
 	 * @return - L'ajout de ces lettres est-il possible ?
 	 */
-	public boolean isProposedLettersValid(HashMap<Character, Pair<Integer, Integer>> letters) {
+	private boolean isProposedLettersValid(HashMap<Character, Pair<Integer, Integer>> letters) {
 		ArrayList<Character> lazyList = new ArrayList<Character>();
 		lazyList.addAll(currentDraw);
 
@@ -498,24 +527,24 @@ public class Scrabble implements Runnable {
 		return finalScore;
 	}
 
-//	private ArrayList<Character> letterAlreadyUsed(String word, ProposedLetter[] letterPlayer) {
-//		ArrayList<Character> letters = new ArrayList<Character>();
-//		char[] cS = word.toCharArray();
-//		ProposedLetter[] pl = letterPlayer.clone();
-//		for (int i = 0; i < cS.length; i++) {
-//			char c = cS[i];
-//			int j = 0;
-//			for (; j < pl.length; j++) {
-//				if (pl[j].getLetter().equals(c)) {
-//					pl[j] = null;
-//					break;
-//				}
-//			}
-//			if (j == pl.length)
-//				letters.add(c);
-//		}
-//		return letters;
-//	}
+	//	private ArrayList<Character> letterAlreadyUsed(String word, ProposedLetter[] letterPlayer) {
+	//		ArrayList<Character> letters = new ArrayList<Character>();
+	//		char[] cS = word.toCharArray();
+	//		ProposedLetter[] pl = letterPlayer.clone();
+	//		for (int i = 0; i < cS.length; i++) {
+	//			char c = cS[i];
+	//			int j = 0;
+	//			for (; j < pl.length; j++) {
+	//				if (pl[j].getLetter().equals(c)) {
+	//					pl[j] = null;
+	//					break;
+	//				}
+	//			}
+	//			if (j == pl.length)
+	//				letters.add(c);
+	//		}
+	//		return letters;
+	//	}
 
 
 
@@ -533,7 +562,7 @@ public class Scrabble implements Runnable {
 		return lazyCurrentDraw;
 	}
 
-	
+
 	// XXX pour debug, rien d'autre!
 	public void setBoard(char[][] board) {
 		this.board = board;
@@ -543,19 +572,19 @@ public class Scrabble implements Runnable {
 		scores.put(username, 0);
 		refreshScore();
 	}
-	
+
 	public synchronized void removePlayer(String username) {
 		scores.remove(username);
 		roundProposition.removeIf(p -> {
 			return p.getClient().getUsername().equals(username);
 		});
 	}
-	
+
 	public synchronized void addPointsToPlayer(String username, int points) {
 		scores.put(username, scores.get(username) + points);
 		refreshScore();
 	}
-	
+
 	public synchronized boolean isUserNameAvailable(String username) {
 		return !scores.containsKey(username);
 	}
@@ -574,11 +603,11 @@ public class Scrabble implements Runnable {
 			return -1;
 		}
 	}
-	
+
 	public int getPhaseRemainingTimeInSecondes() {
 		return getTotalCurrentPhaseTime() - (int) ((System.currentTimeMillis() - currentPhaseStartingTime) / 1000);
 	}
-	
+
 	public String getPlacement() {
 		String result = "";
 
@@ -600,10 +629,10 @@ public class Scrabble implements Runnable {
 		String score = lazyScores;
 		String phase = currentPhase.toString();
 		String temps = getPhaseRemainingTimeInSecondes() + "";
-		
+
 		return new String[] {placement, tirage, score, phase, temps};
 	}
-	
+
 	/**
 	 * Convertie une String en tableau de char.
 	 * @param rawProposition - Chaine à convertir.
@@ -651,8 +680,8 @@ public class Scrabble implements Runnable {
 		REC, //Recherche
 		SOU, //Soumission
 		RES; //Résultat
-		
-		
+
+
 		public Phase getNext() {
 			switch (this) {
 			case DEB:
@@ -664,10 +693,10 @@ public class Scrabble implements Runnable {
 			case RES:
 				return DEB;
 			}
-			
+
 			return DEB;
 		}
-		
+
 		public String toString() {
 			switch (this) {
 			case DEB:
@@ -680,11 +709,11 @@ public class Scrabble implements Runnable {
 				return "RES";
 
 			}
-			
+
 			return ""; //Never reached.
 		}
 	}
-	
+
 	public static void main(String[] args) {
 		Scrabble s = new Scrabble(new RandomPouch(42), null);
 

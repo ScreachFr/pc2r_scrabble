@@ -1,4 +1,4 @@
-package game;
+package game.exceptions;
 
 public class WordPlacementException extends Exception {
 	private static final long serialVersionUID = 2300881216568196378L;
