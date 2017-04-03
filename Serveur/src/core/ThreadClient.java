@@ -31,7 +31,17 @@ public class ThreadClient implements Runnable {
 			writer = new PrintWriter(socket.getOutputStream());
 			
 			while (!finie) {
-				traiterCommande(scan.nextLine());
+				try {
+					traiterCommande(scan.nextLine());
+					
+				} catch (Exception e) { //Deconnecte proprement en cas d'erreur.
+					finie = true;
+					
+					if (isConnected()) {
+						motherBrain.deconnexionClient(this, getUsername());
+					}
+					
+				}
 			}
 			
 			scan.close();
