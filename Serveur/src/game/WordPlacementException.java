@@ -18,6 +18,7 @@ public class WordPlacementException extends Exception {
 		INVALID_BOARD, // Tentative d'arnaque. On a changé des lettres.
 		INVALID_PROPOSITION, // Proposition au mauvais format.
 		WRONG_LETTERS, // Tentative d'arnaque. On a essayé d'utiliser des lettres qui ne sont pas en nombre suffisant dans le draw actuel.
+		WRONG_WORD, // Un des mots créés n'existe pas
 		OTHER; // Parce que.
 	}
 }

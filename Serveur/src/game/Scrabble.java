@@ -192,11 +192,17 @@ public class Scrabble implements Runnable {
 
 		boolean isVertical = isPropositionVertical(newLetters);
 
-		if (!checkHoles(newLetters, proposition, isVertical)) 
-			throw new WordPlacementException(Why.INVALID_PROPOSITION);
+		//		if (!checkHoles(newLetters, proposition, isVertical)) //TODO : tester qu'on n'en a pas besoin
+		//		throw new WordPlacementException(Why.INVALID_PROPOSITION);
 
 		ArrayList<Pair<String, ProposedLetter[]>> solutions = findNewWords(newLetters, isVertical, proposition);
-
+		
+		ArrayList<String> listWords = new ArrayList<>();
+		for (Pair<String, ProposedLetter[]> pair : solutions)
+			listWords.add(pair.getKey());
+		if (!validateMultipleWords(listWords))
+			throw new WordPlacementException(Why.INVALID_PROPOSITION); //TODO : garder le mot qui pose problème
+		
 		//		if (plateauNeContientPasDeMots) { // TODO : tester (et ajouter une identification qu'il n'y a qu'un mot)
 		//			boolean useBoardLetter = false; // Sert à indiquer si aucune mot n'utilise des lettres déjà sur le plateau
 		//			for (Pair<String, ProposedLetter[]> pair : solutions) {
@@ -207,6 +213,8 @@ public class Scrabble implements Runnable {
 		//		}
 		//		if (! useBoardLetter)
 		//			throw new WordPlacementException(Why.INVALID_PROPOSITION);
+		
+		int score = findScore(solutions);
 
 	}
 
@@ -389,7 +397,7 @@ public class Scrabble implements Runnable {
 		return newWords;
 	}
 
-	private String findVerticalWord(ProposedLetter[] l, int x) throws WordPlacementException { //TODO : regarder si les mots ont utilise d'autres lettres ?
+	private String findVerticalWord(ProposedLetter[] l, int x) throws WordPlacementException {
 		String newWord = "";
 		boolean isNewWord = false;
 		ProposedLetter curLetter;
@@ -454,6 +462,62 @@ public class Scrabble implements Runnable {
 	private boolean validateMultipleWords(ArrayList<String> words) {
 		return words.stream().allMatch(w -> wordChecker.isWordValid(w));
 	}
+
+	/**
+	 * Renvoi le score marque grace aux mots / lettre posees
+	 * @param solutions
+	 * @return
+	 */
+	private int findScore(ArrayList<Pair<String, ProposedLetter[]>> solutions) { //TODO : TESTER
+		int score, mult, finalScore = 0;
+		for (Pair<String, ProposedLetter[]> pair : solutions) {
+			score = 0;
+			mult = 1;
+			for (char c : pair.getKey().toCharArray())
+				score += ScoreByLetterFr.letterPoints(c);
+			for (ProposedLetter pl : pair.getValue()) {
+				switch(ScoreByCase.findScoreCase(pl.getX(), pl.getY())) {
+				case DL:
+					score += ScoreByLetterFr.letterPoints(pl.getLetter());
+					break;
+				case TL:
+					score += ScoreByLetterFr.letterPoints(pl.getLetter()) * 2;
+					break;
+				case DW:
+					mult *= 2;
+					break;
+				case TW:
+					mult *= 3;
+					break;
+				default:
+					break;
+				}
+			}
+			finalScore += score * mult;
+		}
+		return finalScore;
+	}
+
+//	private ArrayList<Character> letterAlreadyUsed(String word, ProposedLetter[] letterPlayer) {
+//		ArrayList<Character> letters = new ArrayList<Character>();
+//		char[] cS = word.toCharArray();
+//		ProposedLetter[] pl = letterPlayer.clone();
+//		for (int i = 0; i < cS.length; i++) {
+//			char c = cS[i];
+//			int j = 0;
+//			for (; j < pl.length; j++) {
+//				if (pl[j].getLetter().equals(c)) {
+//					pl[j] = null;
+//					break;
+//				}
+//			}
+//			if (j == pl.length)
+//				letters.add(c);
+//		}
+//		return letters;
+//	}
+
+
 
 	public void drawLetters() throws EmptyPouchException {
 		currentDraw.clear();
@@ -655,7 +719,5 @@ public class Scrabble implements Runnable {
 			e.printStackTrace();
 		}
 	}
-
-
 
 }
