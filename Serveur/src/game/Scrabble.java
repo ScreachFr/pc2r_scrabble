@@ -299,11 +299,16 @@ public class Scrabble implements Runnable {
 
 		ArrayList<Pair<String, ProposedLetter[]>> solutions = findNewWords(newLetters, isVertical, parsedProposition);
 
+		if (solutions.isEmpty())
+			throw new WordPlacementException("Pas de nouveaux mots trouvés", Why.INVALID_PROPOSITION);
+		
+		System.out.println("solutions.size() = " + solutions.size());
+		
 		ArrayList<String> listWords = new ArrayList<>();
 		for (Pair<String, ProposedLetter[]> pair : solutions)
 			listWords.add(pair.getKey());
 		if (!validateMultipleWords(listWords))
-			throw new WordPlacementException("Un ou plusieur de vos mot n'est pas valide.", Why.INVALID_PROPOSITION); //TODO : garder le mot qui pose problème
+			throw new WordPlacementException("Un ou plusieurs de vos mot n'est pas valide.", Why.INVALID_PROPOSITION); //TODO : garder le mot qui pose problème
 
 		//		if (plateauNeContientPasDeMots) { // TODO : tester (et ajouter une identification qu'il n'y a qu'un mot)
 		//			boolean useBoardLetter = false; // Sert à indiquer si aucune mot n'utilise des lettres déjà sur le plateau
@@ -839,34 +844,74 @@ public class Scrabble implements Runnable {
 	public static void main(String[] args) {
 		Scrabble s = new Scrabble(new RandomPouch(42), null, null);
 
-		char[][] b1 = new char[][]{{'0', '0', '0'}, {'A', 'B', 'C'}, {'0', '0', '0'}};
-		char[][] b2 = new char[][]{{'0', '0', '0'}, {'0', '0', '0'}, {'0', '0', '0'}};
-
-		s.setBoard(b2);
-
-		System.out.println(s.isPropositionValid(b1));
-		ArrayList<ProposedLetter> letters = new ArrayList<ProposedLetter>();
-
-		letters.add(new ProposedLetter('A', 1, 3));
-		letters.add(new ProposedLetter('B', 5, 3));
-		letters.add(new ProposedLetter('C', 3, 30));
-		letters.add(new ProposedLetter('D', 1, 3));
-
-		ArrayList<ProposedLetter> validLetters = s.findNewLetters(b1);
-
-		for (ProposedLetter proposedLetter : validLetters)
-			System.out.println(proposedLetter.getX() + ";" + proposedLetter.getY() + ":" + proposedLetter.getLetter());
-
+//		char[][] b1 = new char[][]{{'0', '0', '0'}, {'A', 'B', 'C'}, {'0', '0', '0'}};
+//		char[][] b2 = new char[][]{{'0', '0', '0'}, {'0', '0', '0'}, {'0', '0', '0'}};
+//
+//		s.setBoard(b2);
+//
+//		System.out.println(s.isPropositionValid(b1));
+//		ArrayList<ProposedLetter> letters = new ArrayList<ProposedLetter>();
+//
+//		letters.add(new ProposedLetter('A', 1, 3));
+//		letters.add(new ProposedLetter('B', 5, 3));
+//		letters.add(new ProposedLetter('C', 3, 30));
+//		letters.add(new ProposedLetter('D', 1, 3));
+//
+//		ArrayList<ProposedLetter> validLetters = s.findNewLetters(b1);
+//
+//		for (ProposedLetter proposedLetter : validLetters)
+//			System.out.println(proposedLetter.getX() + ";" + proposedLetter.getY() + ":" + proposedLetter.getLetter());
+//
+//		try {
+//			ArrayList<Pair<String, ProposedLetter[]>> solutions = s.findNewWords(validLetters, s.isPropositionVertical(validLetters), b1);
+//			System.out.println("OK");
+//			System.out.println(solutions.size());
+//			for (Pair<String, ProposedLetter[]> pair : solutions) {
+//				System.out.print(pair.getKey());
+//				for (ProposedLetter pL : pair.getValue())
+//					System.out.println("(" + pL.getLetter() + " : " + pL.getX() + ";" + pL.getY() + ")");
+//			}
+//		} catch (WordPlacementException e) {
+//			e.printStackTrace();
+//		}
+		
+		char[][] testBoard=new char[][]{{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
+										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
+										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
+										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
+										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
+										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
+										{'0', '0', '0', '0', '0', '0', '0', 'T', '0', '0', '0', '0', '0', '0', '0'},
+										{'0', '0', '0', '0', '0', '0', '0', 'A', '0', '0', '0', '0', '0', '0', '0'},
+										{'0', '0', '0', '0', '0', '0', '0', 'T', '0', '0', '0', '0', '0', '0', '0'},
+										{'0', '0', '0', '0', '0', '0', '0', 'A', '0', '0', '0', '0', '0', '0', '0'},
+										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
+										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
+										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
+										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
+										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'}};
+		
+		char[][] testBoardProposition=new char[][]{	{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
+													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
+													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
+													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
+													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
+													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
+													{'0', '0', '0', '0', '0', '0', '0', 'T', 'A', 'B', 'L', 'E', '0', '0', '0'},
+													{'0', '0', '0', '0', '0', '0', '0', 'A', '0', '0', '0', '0', '0', '0', '0'},
+													{'0', '0', '0', '0', '0', '0', '0', 'T', '0', '0', '0', '0', '0', '0', '0'},
+													{'0', '0', '0', '0', '0', '0', '0', 'A', '0', '0', '0', '0', '0', '0', '0'},
+													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
+													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
+													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
+													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
+													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'}};
+		Proposition testProposition = new Proposition(null, "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000TABLE0000000000A00000000000000T00000000000000A0000000000000000000000000000000000000000000000000000000000000000000000000000000000", 40);
+		s.setBoard(testBoard);
 		try {
-			ArrayList<Pair<String, ProposedLetter[]>> solutions = s.findNewWords(validLetters, s.isPropositionVertical(validLetters), b1);
-			System.out.println("OK");
-			System.out.println(solutions.size());
-			for (Pair<String, ProposedLetter[]> pair : solutions) {
-				System.out.print(pair.getKey());
-				for (ProposedLetter pL : pair.getValue())
-					System.out.println("(" + pL.getLetter() + " : " + pL.getX() + ";" + pL.getY() + ")");
-			}
+			s.proposeBoard(testProposition);
 		} catch (WordPlacementException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
