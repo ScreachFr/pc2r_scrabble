@@ -51,6 +51,9 @@ public class ThreadBrodcaster implements Runnable {
 
 	private void sendMessage() {
 		Message toSend = msgsToSend.remove(0);
+		if (toSend == null)
+			return;
+		
 		if (toSend.isPrivate()) {
 			for (ThreadClient tc : threadsClient) {
 				if (tc.isConnected() && tc.getUsername().equals(toSend.getDest()))

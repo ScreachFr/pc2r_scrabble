@@ -1,5 +1,7 @@
 package game;
 
+import java.util.ArrayList;
+
 import core.ThreadClient;
 
 public class Proposition {
@@ -11,6 +13,7 @@ public class Proposition {
 	
 	private char[][] parsedBoard;
 	private int score;
+	private ArrayList<String> foundWords;
 	
 	public Proposition(ThreadClient client, String proposition, long timestamp) {
 		this.client = client;
@@ -54,5 +57,26 @@ public class Proposition {
 	public void setParsedBoard(char[][] parsedBoard) {
 		this.parsedBoard = parsedBoard;
 	}
+	
+	public ArrayList<String> getFoundWords() {
+		return foundWords;
+	}
+	
+	public void addFoundWord(String word) {
+		if (foundWords == null) 
+			foundWords = new ArrayList<>();
+			
+		foundWords.add(word);
+		
+	}
+	
+	public void addFoundWord(ArrayList<String> words) {
+		if (foundWords == null) 
+			foundWords = new ArrayList<>();
+			
+		foundWords.addAll(words);
+		
+	}
+	
 	
 }

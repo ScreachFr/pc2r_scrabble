@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import core.MotherBrain;
 import javafx.util.Pair;
@@ -23,12 +24,13 @@ public class Scrabble implements Runnable {
 	private final static int DRAW_SIZE = 7;
 	public final static int DEFAULT_POUCH_SIZE = 52; 
 	private final static Character NULL_CHAR = '0';
-	private final static long RECHERCHE_TIME = fiveMinutes * 1000;
-	private final static long SOUMISSION_TIME = twoMinutes * 1000;
+//	private final static long RECHERCHE_TIME = fiveMinutes * 1000;
+	private final static long RECHERCHE_TIME = 3000;
+//	private final static long SOUMISSION_TIME = twoMinutes * 1000;
+	private final static long SOUMISSION_TIME = 3000;
 	private final static long RESULTATS_TIME = 10 * 1000;
 
-	private Lock lock;
-	private Condition nextGameState;
+	private Lock gameStateLock;
 
 	private Pouch pouch;
 	private WordChecker wordChecker;
@@ -72,6 +74,9 @@ public class Scrabble implements Runnable {
 		isGameOn = false;
 		propositionValidator = new PropositionValidator(this);
 		gameLoopThread = new Thread(this);
+		
+		gameStateLock = new ReentrantLock();
+		
 		//		initBoard();
 		//		refreshBoardState();
 		//		pouch.resetLetters();
@@ -98,8 +103,9 @@ public class Scrabble implements Runnable {
 			System.out.println("Pouch vide au début de la partie !");
 		}
 
-
 		isGameOn = true;
+		if (!gameLoopThread.isAlive())
+			gameLoopThread.start();
 	}
 
 	public void stopGame() {
@@ -108,23 +114,45 @@ public class Scrabble implements Runnable {
 		gameLoopThread.interrupt();
 	}
 
+	
+	public void handleResultPhase() {
+		Proposition winningProposition = null;
+		
+		for (Proposition proposition : roundProposition) {
+			if (winningProposition == null)
+				winningProposition = proposition;
+			else if (proposition.getScore() > winningProposition.getScore())
+				winningProposition = proposition;
+			
+		}
+		
+		String mot = "";
+		for (String w : winningProposition.getFoundWords()) {
+			if (w.length() > mot.length())
+				mot = w;
+		}
+		
+		
+		motherBrain.broadcastBilan(mot, winningProposition.getClient().getUsername(), winningProposition.getScore()+"");
+	}
 
 	@Override
 	public void run() {
-
+		System.out.println("Lancement de la boucle de jeu");
 		while (isGameOn) {
 			try {
 				//Début tour
+				System.out.println("Début de tour");
 				drawLetters();
 				currentRound++;
 				roundProposition.clear();
 				firstProposition = null;
 				refreshBoardState();
-				motherBrain.broadcastNewSession();
 				motherBrain.broadcastNewRound(lazyBoardState, lazyCurrentDraw);
 
 				//Phase de Recherche
 				switchToNextPhase();
+				System.out.println("Phase de recherche");
 				try {
 					Thread.sleep(RECHERCHE_TIME);
 				} catch (InterruptedException e) {
@@ -143,6 +171,7 @@ public class Scrabble implements Runnable {
 
 				//Phase de soumission
 				switchToNextPhase();
+				System.out.println("Phase de soumission");
 				try {
 					Thread.sleep(SOUMISSION_TIME);
 				} catch (InterruptedException e) {
@@ -154,8 +183,8 @@ public class Scrabble implements Runnable {
 
 				//Phase de résultat
 				switchToNextPhase();
-//				motherBrain.broadcastBilan(mot, vainqueur, scores);
-				
+				System.out.println("Phase de résultat");
+				handleResultPhase();
 				try {
 					Thread.sleep(RESULTATS_TIME);
 				} catch (InterruptedException e) {
@@ -164,18 +193,21 @@ public class Scrabble implements Runnable {
 				}
 				
 			} catch(EmptyPouchException e) {
-				//TODO fin de la session.
+				startGame();
+				motherBrain.broadcastNewSession();
 			}
 		}
 	}
 
 	public void switchToNextPhase() {
+		gameStateLock.lock();
 		if (currentPhase == null) 
 			currentPhase = Phase.DEB;
 		else 
 			currentPhase = currentPhase.getNext();
 
 		currentPhaseStartingTime = System.currentTimeMillis();
+		gameStateLock.unlock();
 	}
 
 	public void interruptGameLoop() {
@@ -282,6 +314,8 @@ public class Scrabble implements Runnable {
 		//			throw new WordPlacementException(Why.INVALID_PROPOSITION);
 
 
+		
+		proposition.addFoundWord(listWords);
 		proposition.setScore(findScore(solutions));
 		proposition.setValidated(true);
 		
@@ -654,6 +688,10 @@ public class Scrabble implements Runnable {
 		return !scores.containsKey(username);
 	}
 
+	public Lock getGameStateLock() {
+		return gameStateLock;
+	}
+	
 	public int getTotalCurrentPhaseTime() {
 		switch (currentPhase) {
 		case DEB:

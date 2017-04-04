@@ -46,6 +46,7 @@ public class PropositionValidator implements Runnable {
 				if (!toValidate.isEmpty()) {
 					currentProposition = toValidate.remove(0);
 					try {
+						scrabble.getGameStateLock().lock();
 						scrabble.proposeBoard(currentProposition);
 						if (scrabble.getCurrentPhase() == Phase.REC) {
 							currentProposition.getClient().sendRVALIDE();
@@ -55,9 +56,10 @@ public class PropositionValidator implements Runnable {
 							currentProposition.getClient().sendSVALIDE();
 					} catch (WordPlacementException e) {
 						currentProposition.getClient().envoyerMessage("RINVALIDE", e.getWhy()+"");
+					} finally {
+						scrabble.getGameStateLock().unlock();
 					}
 					
-					//Do stuff here.
 				} else {
 					try {
 						hasToValidate.await();
