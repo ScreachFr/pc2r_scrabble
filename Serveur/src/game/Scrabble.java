@@ -130,8 +130,8 @@ public class Scrabble implements Runnable {
 				mot = w;
 		}
 
-
-		motherBrain.broadcastBilan(mot, winningProposition.getClient().getUsername(), winningProposition.getScore()+"");
+		refreshScore();
+		motherBrain.broadcastBilan(mot, winningProposition.getClient().getUsername(), getLazyScores());
 	}
 
 	@Override
