@@ -775,7 +775,8 @@ public class Scrabble implements Runnable {
 			}
 			
 		}
-
+ 
+		
 		return result;
 	}
 
