@@ -39,6 +39,8 @@ public class ThreadClient implements Runnable {
 				} catch (Exception e) { //Deconnecte proprement en cas d'erreur.
 					finie = true;
 					
+					e.printStackTrace();
+					
 					if (isConnected()) {
 						motherBrain.deconnexionClient(this, getUsername());
 					}

@@ -20,14 +20,14 @@ public class Scrabble implements Runnable {
 	private final static int fiveMinutes = 300;
 	private final static int twoMinutes = 120;
 
-	private final static int BOARD_SIZE = 3; //XXX Était à 15 XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX
+	private final static int BOARD_SIZE = 15; //XXX Était à 15 XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX
 	private final static int DRAW_SIZE = 7;
 	public final static int DEFAULT_POUCH_SIZE = 52; 
 	private final static Character NULL_CHAR = '0';
 	private final static long RECHERCHE_TIME = fiveMinutes * 1000;
 	//	private final static long RECHERCHE_TIME = 3000;
-	//	private final static long SOUMISSION_TIME = twoMinutes * 1000;
-	private final static long SOUMISSION_TIME = 3000;
+		private final static long SOUMISSION_TIME = twoMinutes * 1000;
+//	private final static long SOUMISSION_TIME = 3000;
 	private final static long RESULTATS_TIME = 10 * 1000;
 
 	private Lock gameStateLock;
@@ -73,8 +73,6 @@ public class Scrabble implements Runnable {
 		roundProposition = new ArrayList<>();
 		isGameOn = false;
 		propositionValidator = new PropositionValidator(this);
-		gameLoopThread = new Thread(this);
-
 		gameStateLock = new ReentrantLock();
 
 		//		initBoard();
@@ -104,8 +102,8 @@ public class Scrabble implements Runnable {
 		}
 
 		isGameOn = true;
-		if (!gameLoopThread.isAlive())
-			gameLoopThread.start();
+		gameLoopThread = new Thread(this);
+		gameLoopThread.start();
 	}
 
 	public void stopGame() {
@@ -199,6 +197,7 @@ public class Scrabble implements Runnable {
 				motherBrain.broadcastNewSession();
 			}
 		}
+		System.out.println("Fin de la boucle de jeu.");
 	}
 
 	public void switchToNextPhase() {
@@ -286,9 +285,9 @@ public class Scrabble implements Runnable {
 			throw new WordPlacementException("Modification des lettres déjà présentes.", Why.INVALID_PROPOSITION);
 
 		ArrayList<ProposedLetter> newLetters = findNewLetters(parsedProposition);
-		
+
 		System.out.println("proposed letters size -> " + newLetters.size());
-		
+
 		// Proposition sans nouvelle lettre.
 		if (newLetters.isEmpty())
 			throw new WordPlacementException("Pas de nouvelle lettre.", Why.INVALID_PROPOSITION);
@@ -402,7 +401,7 @@ public class Scrabble implements Runnable {
 		boolean sameY = true;
 		int lastX = -1;
 		int lastY = -1;
-		
+
 		newLetters.forEach(l -> System.out.println(l.getX() + ", " + l.getY()));
 
 		for (ProposedLetter c : newLetters) {
@@ -764,19 +763,19 @@ public class Scrabble implements Runnable {
 
 		int x, y;
 		for (int i = 0; i < rawProposition.length(); i++) {
-			
+
 			if (isValidChar(rawProposition.charAt(i))) {
 				x = i / BOARD_SIZE;
 				y = i % BOARD_SIZE;
-				
+
 				result[x][y] = rawProposition.charAt(i);
 			} else {
 				throw new WordPlacementException("Charactère invalide trouvé.", Why.INVALID_PROPOSITION);
 			}
-			
+
 		}
- 
-		
+
+
 		return result;
 	}
 
