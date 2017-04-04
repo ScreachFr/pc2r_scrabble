@@ -5,7 +5,8 @@ public class WordPlacementException extends Exception {
 	
 	private Why why;
 	
-	public WordPlacementException(Why why) {
+	public WordPlacementException(String message, Why why) {
+		super(message);
 		this.why = why;
 	}
 	

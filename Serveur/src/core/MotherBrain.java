@@ -13,6 +13,8 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class MotherBrain implements Runnable {
 	private ExecutorService pool;
@@ -21,10 +23,12 @@ public class MotherBrain implements Runnable {
 	private ThreadBrodcaster broadcaster;
 	private Thread threadBroadcaster;
 	private ArrayList<ThreadClient> threadsClient;
-	
+
 	private Scrabble scrabble;
-	
-	
+
+	private Lock clientListLock;
+	private int playerCount;
+
 	public MotherBrain(int playerLimit, ServerSocket socket) {
 		this.playerLimit = playerLimit;
 		this.socket = socket;
@@ -32,18 +36,20 @@ public class MotherBrain implements Runnable {
 		this.threadsClient = new ArrayList<ThreadClient>();
 		this.broadcaster = new ThreadBrodcaster(threadsClient);
 		threadBroadcaster = new Thread(broadcaster);
+		clientListLock = new ReentrantLock();
+		playerCount = 0;
 	}
 
 	@Override
 	public void run() {
 		threadBroadcaster.start();
 		initScrabble();
-		
+
 		Socket crtSocket;
 		while (true) { //TODO
 			try {
 				crtSocket = socket.accept();
-				
+
 				if (threadsClient.size() >= playerLimit) {
 					refuserClient(crtSocket);
 				} else {
@@ -56,7 +62,7 @@ public class MotherBrain implements Runnable {
 			}
 		}
 	}
-	
+
 	private void refuserClient(Socket socket) {
 		try {
 			PrintWriter out = new PrintWriter(socket.getOutputStream());
@@ -70,30 +76,45 @@ public class MotherBrain implements Runnable {
 		}
 	}
 
-	public synchronized boolean reserverUsername(String username, ThreadClient threadClient) {
-		for (ThreadClient tc : threadsClient) {
-			if (username.equals(tc.getUsername()))
+	public boolean reserverUsername(String username, ThreadClient threadClient) {
+		clientListLock.lock();
+		try {
+			for (ThreadClient tc : threadsClient) {
+				if (username.equals(tc.getUsername()))
+					return false;
+			}
+
+			if (!scrabble.isUserNameAvailable(username))
 				return false;
+
+			if (!scrabble.hasPlayers()) 
+				scrabble.startGame();
+
+			scrabble.addPlayer(username);
+
+			threadClient.setUsername(username);
+			playerCount++;
+
+			return true;
+		} finally {
+			clientListLock.unlock();
 		}
-		
-		if (!scrabble.isUserNameAvailable(username))
-			return false;
-		
-		if (!scrabble.hasPlayers()) 
-			scrabble.startGame();
-		
-		scrabble.addPlayer(username);
-		
-		threadClient.setUsername(username);
-		
-		
-		return true;
+	}
+
+	public boolean hasActiveClient() {
+		clientListLock.lock();
+		try {
+			return playerCount >= 1;
+		} finally {
+			clientListLock.unlock();
+		}
+
 	}
 
 	public void initScrabble() {
 		scrabble = new Scrabble(new RandomPouch(Scrabble.DEFAULT_POUCH_SIZE), new DumbWordChecker(), this);
 	}
-	
+
 	public synchronized String[] sessionState() {
 		return scrabble.getCompleteGameState();
 	}
@@ -102,15 +123,19 @@ public class MotherBrain implements Runnable {
 		broadcaster.broadcast("CONNECTE", username);
 	}
 
-	public synchronized void deconnexionClient(ThreadClient threadClient, String username) {
+	public void deconnexionClient(ThreadClient threadClient, String username) {
 		broadcaster.broadcast("DECONNEXION", username);
-		threadsClient.remove(threadClient);
-		
-		scrabble.removePlayer(username);
-		
-		if (threadsClient.size() == 0) 
-			scrabble.stopGame();
-		
+		clientListLock.lock();
+		try {
+			threadsClient.remove(threadClient);
+
+			scrabble.removePlayer(username);
+			playerCount--;
+			if (playerCount == 0) 
+				scrabble.stopGame();
+		} finally {
+			clientListLock.unlock();
+		}
 	}
 
 	public void envoiMessage(String msg, String username) {
@@ -123,36 +148,36 @@ public class MotherBrain implements Runnable {
 
 	public void submitProposition(ThreadClient client, String propositionString) throws PropositionException {
 		Proposition p = new Proposition(client, propositionString, System.currentTimeMillis());
-		
+
 		scrabble.submitProposition(p);
 	}
-	
+
 	public void broadcastFinRecherche() {
 		broadcaster.broadcast("RFIN");
 	}
-	
+
 	public void broadcastFinSoumission() {
 		broadcaster.broadcast("SFIN");
 	}
-	
+
 	public void broadcastNewSession() {
 		broadcaster.broadcast("SESSION");
 	}
-	
+
 	public void broadcastNewRound(String board, String draw) {
 		broadcaster.broadcast("TOUR", board, draw);
 	}
-	
+
 	//RATROUVE/user/
 	public void broadcastRATROUVE(String user) {
 		broadcaster.broadcast("RATROUVE", user);
 	}
-	
-	
+
+
 	//BILAN/mot/vainqueur/scores/
 	public void broadcastBilan(String mot, String vainqueur, String scores) {
 		broadcaster.broadcast("BILAN", mot, vainqueur, scores);
 	}
-	
-	
+
+
 }

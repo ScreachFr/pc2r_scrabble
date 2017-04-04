@@ -55,7 +55,7 @@ public class PropositionValidator implements Runnable {
 						} else if (scrabble.getCurrentPhase() == Phase.SOU)
 							currentProposition.getClient().sendSVALIDE();
 					} catch (WordPlacementException e) {
-						currentProposition.getClient().envoyerMessage("RINVALIDE", e.getWhy()+"");
+						currentProposition.getClient().envoyerMessage("RINVALIDE", e.getMessage() + ":" + e.getWhy()+"");
 					} finally {
 						scrabble.getGameStateLock().unlock();
 					}
