@@ -3,6 +3,7 @@ package core;
 import game.Proposition;
 import game.Scrabble;
 import game.exceptions.PropositionException;
+import game.pouches.FrenchPouch;
 import game.pouches.RandomPouch;
 import game.wordchecker.DumbWordChecker;
 
@@ -28,6 +29,8 @@ public class MotherBrain implements Runnable {
 
 	private Lock clientListLock;
 	private int playerCount;
+	
+	private boolean useOnlineDico;
 
 	public MotherBrain(int playerLimit, ServerSocket socket) {
 		this.playerLimit = playerLimit;
@@ -38,7 +41,15 @@ public class MotherBrain implements Runnable {
 		threadBroadcaster = new Thread(broadcaster);
 		clientListLock = new ReentrantLock();
 		playerCount = 0;
+		
+		useOnlineDico = false;
 	}
+	
+	public MotherBrain(int playerLimit, ServerSocket socket, boolean userOnlineDico) {
+		this(playerLimit, socket);
+		this.useOnlineDico = userOnlineDico;
+	}
+	
 
 	@Override
 	public void run() {
@@ -110,9 +121,18 @@ public class MotherBrain implements Runnable {
 		}
 
 	}
+	
+	public int getActuveClient() {
+		clientListLock.lock();
+		try {
+			return playerCount;
+		} finally {
+			clientListLock.unlock();
+		}
+	}
 
 	public void initScrabble() {
-		scrabble = new Scrabble(new RandomPouch(Scrabble.DEFAULT_POUCH_SIZE), new DumbWordChecker(), this);
+		scrabble = new Scrabble(new FrenchPouch(), new DumbWordChecker(), this);
 	}
 
 	public synchronized String[] sessionState() {

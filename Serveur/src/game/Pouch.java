@@ -10,7 +10,6 @@ public abstract class Pouch {
 	public Pouch(int size) {
 		letters = new ArrayList<Character>();
 		rng = new Random();
-		resetLetters();
 		
 		this.size = size;
 	}

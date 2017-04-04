@@ -553,6 +553,7 @@
             function bilan(args) {
                 console.log('Traitement du bilan');
                 newBilanWindow(args[2], args[1], args[3]);
+                parseScores(args[3]);
                 changePhase('RES');
             }
 
@@ -650,9 +651,13 @@
                 var split = scores.split(/\*/g);
                 $('#round-number').text(split[0]);
                 for (i = 1; i < split.length; i+=2) {
-                    $('#player-list').append($('<li id="li-' + split[i] + '" >').append(getUserLink(split[i], true), " " + split[i+1]));
-                    if (split[i] != clientUsername)
+                    if ($('#score-' + split[i]).exists()) {
+                        $('#score-' + split[i]).text(split[i+1]);
+                    } else {
+                        $('#player-list').append($('<li id="li-' + split[i] + '" >').append(getUserLink(split[i], true), ' <span id="score-' + split[i] + '">' + split[i+1] + '</span>'));
+                        if (split[i] != clientUsername)
                         connectedPlayers.push(split[i]);
+                    }
                 }
 
             }

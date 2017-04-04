@@ -14,6 +14,7 @@ public class Proposition {
 	private char[][] parsedBoard;
 	private int score;
 	private ArrayList<String> foundWords;
+	private ArrayList<Character> usedLetters;
 	
 	public Proposition(ThreadClient client, String proposition, long timestamp) {
 		this.client = client;
@@ -78,5 +79,16 @@ public class Proposition {
 		
 	}
 	
+	public void addUsedLetter(Character c) {
+		if (usedLetters == null) {
+			usedLetters = new ArrayList<>();
+		}
+
+		usedLetters.add(c);
+	}
+	
+	public ArrayList<Character> getUsedLetters() {
+		return usedLetters;
+	}
 	
 }

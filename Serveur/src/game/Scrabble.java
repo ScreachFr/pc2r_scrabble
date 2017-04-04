@@ -10,7 +10,6 @@ import game.wordchecker.DumbWordChecker;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -76,9 +75,6 @@ public class Scrabble implements Runnable {
 		propositionValidator = new PropositionValidator(this);
 		gameStateLock = new ReentrantLock();
 
-		//		initBoard();
-		//		refreshBoardState();
-		//		pouch.resetLetters();
 	}
 
 
@@ -87,7 +83,6 @@ public class Scrabble implements Runnable {
 
 
 	public void startGame() {
-		//TODO
 		System.out.println("Début de la partie.");
 		initBoard();
 		refreshBoardState();
@@ -125,12 +120,18 @@ public class Scrabble implements Runnable {
 
 		}
 
+		
 		String mot = "";
 		for (String w : winningProposition.getFoundWords()) {
 			if (w.length() > mot.length())
 				mot = w;
 		}
 
+		board = winningProposition.getParsedBoard();
+		lazyBoardState = winningProposition.getProposition();
+		pouch.putLettersBack(winningProposition.getUsedLetters());
+		
+		
 		refreshScore();
 		motherBrain.broadcastBilan(mot, winningProposition.getClient().getUsername(), getLazyScores());
 	}
@@ -147,6 +148,7 @@ public class Scrabble implements Runnable {
 				roundProposition.clear();
 				firstProposition = null;
 				refreshBoardState();
+				setPhaseToDEB();
 				motherBrain.broadcastNewRound(lazyBoardState, lazyCurrentDraw);
 
 				//Phase de Recherche
@@ -155,12 +157,14 @@ public class Scrabble implements Runnable {
 				try {
 					Thread.sleep(RECHERCHE_TIME);
 				} catch (InterruptedException e) {
+					System.out.println("Interruption Recherche");
 					if (!isGameOn)
 						break;
 				}
 
 				if (firstProposition != null) {
 					motherBrain.broadcastRATROUVE(firstProposition.getClient().getUsername());
+					pouch.putLettersBack(currentDraw);
 					motherBrain.broadcastFinRecherche();
 				} else { //Aucune proposition.
 					motherBrain.broadcastFinRecherche();
@@ -171,10 +175,11 @@ public class Scrabble implements Runnable {
 				//Phase de soumission
 				switchToNextPhase();
 				System.out.println("Phase de soumission");
-				if (motherBrain.hasActiveClient()) { // Un seul joueur donc skip de la phase de soumission.
+				if (motherBrain.getActuveClient() > 1) { // Un seul joueur donc skip de la phase de soumission.
 					try {
 						Thread.sleep(SOUMISSION_TIME);
 					} catch (InterruptedException e) {
+						System.out.println("Interruption Soumission");
 						if (!isGameOn)
 							break;
 					}
@@ -189,9 +194,12 @@ public class Scrabble implements Runnable {
 				try {
 					Thread.sleep(RESULTATS_TIME);
 				} catch (InterruptedException e) {
+					System.out.println("Interruption Résultats");
 					if (!isGameOn)
 						break;
 				}
+				
+				switchToNextPhase();
 
 			} catch(EmptyPouchException e) {
 				startGame();
@@ -203,6 +211,8 @@ public class Scrabble implements Runnable {
 
 	public void switchToNextPhase() {
 		gameStateLock.lock();
+		System.out.println("demande de switch de phase " + currentPhase);
+		
 		if (currentPhase == null) 
 			currentPhase = Phase.DEB;
 		else 
@@ -212,6 +222,13 @@ public class Scrabble implements Runnable {
 		gameStateLock.unlock();
 	}
 
+	public void setPhaseToDEB() {
+		gameStateLock.lock();
+		currentPhase = Phase.DEB;
+		currentPhaseStartingTime = System.currentTimeMillis();
+		gameStateLock.unlock();
+	}
+	
 	public void interruptGameLoop() {
 		gameLoopThread.interrupt();
 	}
@@ -287,8 +304,6 @@ public class Scrabble implements Runnable {
 
 		ArrayList<ProposedLetter> newLetters = findNewLetters(parsedProposition);
 
-		System.out.println("proposed letters size -> " + newLetters.size());
-
 		// Proposition sans nouvelle lettre.
 		if (newLetters.isEmpty())
 			throw new WordPlacementException("Pas de nouvelle lettre.", Why.INVALID_PROPOSITION);
@@ -324,8 +339,10 @@ public class Scrabble implements Runnable {
 
 		proposition.addFoundWord(listWords);
 		proposition.setScore(findScore(solutions));
+		
+		newLetters.forEach(pl -> proposition.addUsedLetter(pl.getLetter()));
 		proposition.setValidated(true);
-
+		
 		if (currentPhase == Phase.REC && firstProposition == null) 
 			firstProposition = proposition;
 
@@ -359,7 +376,7 @@ public class Scrabble implements Runnable {
 			if (currentPhase == Phase.REC || currentPhase == Phase.SOU) {
 				propositionValidator.submit(proposition);
 			} else {
-				throw new PropositionException("Vous ne pouvez pas soumettre de proposition maintenant.");
+				throw new PropositionException("Vous ne pouvez pas soumettre de proposition maintenant." + currentPhase);
 			}
 		} finally {
 			gameStateLock.unlock();
@@ -382,9 +399,7 @@ public class Scrabble implements Runnable {
 
 		for (int i = 0; i < BOARD_SIZE; i++) {
 			for (int j = 0; j < BOARD_SIZE; j++) {
-				System.out.println(i + ", " + j);
 				if (board[i][j] == NULL_CHAR && proposition[i][j] != NULL_CHAR) {
-					System.out.println("found : " + proposition[i][j]);
 					result.add(new ProposedLetter(proposition[i][j], i, j));
 				}
 			}
@@ -406,7 +421,6 @@ public class Scrabble implements Runnable {
 		int lastX = -1;
 		int lastY = -1;
 
-		newLetters.forEach(l -> System.out.println(l.getX() + ", " + l.getY()));
 
 		for (ProposedLetter c : newLetters) {
 			if (lastX == -1)
@@ -557,10 +571,6 @@ public class Scrabble implements Runnable {
 				isNewWord = true;
 				counter--;
 			}
-			System.out.println(x + ";" + y);
-			if (curLetter != null)
-				System.out.println(curLetter.getLetter());
-			System.out.println(counter);
 		}
 		if (counter != 0)
 			throw new WordPlacementException("Pas de mot trouvé (V).", Why.INVALID_PROPOSITION);
