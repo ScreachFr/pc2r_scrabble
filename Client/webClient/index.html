@@ -7,36 +7,72 @@
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
         <style>
             body {
-                font-family: arial;
+                /*font-family: arial;*/
                 width: 1000px;
                 margin: auto;
 
             }
 
             .board-container {
-                border: solid 5px black;
+                border: solid 1px gray;
+                border-radius: 10px;
             }
 
             .board-table {
-                border : solid 3px grey;
+                /*border : solid 3px grey;*/
                 width: 80%;
-                margin: auto;
+                padding: 15px;
+
+                margin: 15px auto 15px auto;
+
             }
 
             .board-table td {
-                border: solid 2px blue;
+                /*border: solid 2px blue;*/
                 height: 45px;
                 text-align: center;
                 font-size: 200%;
             }
 
+            .case-drop-hovered {
+                background-color: lightgreen;
+            }
+
+            .case {
+                width: 50px;
+                height: 50px;
+            }
+
+            .full-case, .empty-case, .case-dropped {
+                border-radius: 15px;
+            }
+
+            .full-case {
+                border: solid 3px black;
+            }
+
+            .empty-case {
+                border: dotted 1px gray;
+            }
+
+            .case-dropped {
+                border: solid 3px blue;
+                background-color: lightblue;
+                cursor: pointer;
+            }
+
             .board-footer {
                 text-align: center;
-                border: solid black 5px;
+                border: solid gray 2px;
+                border-radius: 5px 5px 10px 10px;
+            }
+
+            .timer, .board-submit {
+                height: 80px;
+                z-index: 1;
             }
 
             .draw-list {
-                /*width: 70%;*/
                 margin: auto;
                 text-align: center;
                 display: inline-block;
@@ -50,12 +86,24 @@
                 display: inline-block;
                 text-align: center;
                 font-size: 200%;
+                transition: linear;
+            }
+
+            .draw-element:hover {
+                cursor: grabbing;
+                font-weight: bold;
+            }
+
+            .draw-element.ui-draggable-dragging {
+                border: solid 5px green;
             }
 
             .timer {
                 padding: 15px;
                 background-color: lightgray;
                 display: inline-block;
+                border-radius: 3px;
+
             }
 
             .timer-label {
@@ -71,7 +119,6 @@
                 display: inline-block;
                 background: lightgray;
                 padding: 15px;
-                height: 100%;
             }
 
             .chat, .chat-prive {
@@ -81,10 +128,12 @@
                 height: 250px;
                 border-radius: 5px;
                 padding: 0 5px 10px 5px;
+                cursor: grabbing;
             }
             .chat {
                 bottom : 0;
                 left : 0;
+                border: solid 1px lightgray;
             }
 
             .chat-prive {
@@ -92,15 +141,15 @@
                 left: 0;
             }
 
-            .chat-header:hover {
-                cursor: grabbing;
+            .chat:hover {
+                border: solid 1px gray;
             }
 
             .chat-header {
-                width: 100%;
+                /*width: 100%;*/
                 /*height: 10%;*/
                 display: block;
-                margin: 5px 0 5px 5px;
+                margin: 5px 10px 5px 10px;
                 padding: 0;
 
             }
@@ -161,6 +210,7 @@
                 padding: 0px 15px 15px 15px;
                 border-radius: 5px;
                 text-align: left;
+                width: 300px;
             }
 
             .player-list ul {
@@ -173,6 +223,12 @@
             }
 
             .player-list li:nth-child(odd) { background: #eee; }
+
+            .player-list h4 {
+                margin-top: 0;
+                margin-bottom: 0;
+            }
+
 
             .user {
                 font-weight: bold;
@@ -194,11 +250,67 @@
                 margin: auto;
             }
 
+            .letter-helper {
+                background: red;
+            }
+
+            #alert-container {
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 400px;
+            }
+
+            /*BILAN*/
+            .bilan {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                background: lightgray;
+                border-radius: 5px;
+                padding: 15px;
+                min-width: 300px;
+                cursor: grabbing;
+                border: solid 1px lightgray;
+            }
+
+            .bilan:hover {
+                border: solid 1px gray;
+            }
+
+            .bilan h3 {
+                margin-top: 0;
+            }
+
+
+
+            .bilan ul {
+                list-style-type: none;
+                display: block;
+                overflow-y: scroll;
+                margin: 0;
+                padding: 0;
+                max-height: 150px;
+                margin-bottom: 15px;
+            }
+
+            .bilan li:nth-child(odd) { background: #eee; }
+
+
+            .button-container {
+                text-align: right;
+            }
+
+            .window-header {
+                border-bottom: solid gray 1px;
+            }
+
         </style>
 
     </head>
     <body onload="init();">
-
+        <div id="alert-container">
+        </div>
         <!-- Connexion -->
         <div class="modal fade" id="connectionModal" tabindex="-1" role="dialog" >
             <div class="modal-dialog" role="document">
@@ -228,23 +340,25 @@
             <table class="board-table" id="board-table">
             </table>
 
-            <div class="board-footer">
-                <div class="timer">
-                    <p>
-                    </span><span class="timer-label">Temps restant </span><br /><span id="timer-value">0</span> <span class="glyphicon glyphicon-time" aria-hidden="true">
-                    </p>
-                </div>
-                <div class="draw-list">
-                </div>
-                <div class="board-submit">
-                    <button>Soumettre plateau</button>
+            <div class="board-footer container-fluid">
+                <div class="row">
+                    <div class="timer col-xs-2">
+                        <p>
+                        </span><span class="timer-label">Temps restant </span><br /><span id="timer-value">0</span> <span class="glyphicon glyphicon-time" aria-hidden="true">
+                        </p>
+                    </div>
+                    <div class="draw-list col-xs-8">
+                    </div>
+                    <div class="board-submit col-xs-2">
+                        <button id="board-submit">Soumettre plateau</button>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Chat (miaou) -->
         <div id="global-chat-window" class="chat">
-            <h3 class="chat-header"><span class="glyphicon glyphicon-comment" aria-hidden="true"></span> Chat</h3>
+            <h3 class="chat-header window-header"><span class="glyphicon glyphicon-comment" aria-hidden="true"></span> Chat</h3>
             <div class="messages-container">
                 <ul id="messages">
                 </ul>
@@ -257,11 +371,12 @@
 
         <!-- Player list -->
         <div class="player-list">
-            <h3>Liste des joueurs</h3>
+            <h3 class="window-header">Liste des joueurs</h3>
             <ul id="player-list">
 
             </ul>
-            <h4>Round : <span id="round-number">-</span></h4>
+            <h4>Round : <span id="round-number">-</span></h4><br />
+            <h4>Phase de jeu : <span id="phase">-</span></h4>
         </div>
 
         <!-- Scripts -->
@@ -275,6 +390,9 @@
 
         const BOARD_SIZE = 15;
         const DRAW_SIZE = 7;
+        const REC_LENGTH = 5*60;
+        const SOU_LENGTH = 2*60;
+        const RES_LENGTH = 10;
 
         const CONNECTION_ERROR_ALERT = '<div class="alert alert-info alert-dismissible" id="connexionFailureAlert" role="alert"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button><strong>Échec de la connexion</strong></div>';
 
@@ -282,9 +400,9 @@
             $("#connectionModal").modal('show');
 
             generateBoard();
-            generateDrawList();
             $('.board-container').show();
             $('.chat').draggable();
+            console.log('init done');
         }
 
 
@@ -293,15 +411,25 @@
             for (var i = 0; i < BOARD_SIZE; i++) {
                 $('#board-table').append($('<tr>').attr('id', 'row-' + i));
                 for (var j = 0; j < BOARD_SIZE; j++) {
-                    $('#row-' + i).append($('<td>').attr('id', 'col-' + j).text('0'));
+                    $('#row-' + i).append($('<td class="case">').attr('id', 'col-' + j).text(''));
                 }
             }
         }
 
-        function generateDrawList() {
-            for (var i = 0; i < DRAW_SIZE; i++) {
-                $('.draw-list').append($('<span>').attr('class', 'draw-element').attr('id', 'draw-' + i));
-            }
+
+        function getDrawElement(letter) {
+            var result = $('<span class="draw-element" id="draw-' + i + '">');
+            result.draggable( {
+                containment: '.board-container',
+                revert: true
+            });
+            result.text(letter);
+
+            return result;
+        }
+
+        function addDrawElementToDrawList(letter) {
+            $('.draw-list').append(getDrawElement(letter));
         }
 
         $(function () {
@@ -309,6 +437,7 @@
             var clientUsername;
             var connectedPlayers = [];
             var currentState;
+            var phase;
 
             setInterval(function() {
                 var timerValue = $('#timer-value').text();
@@ -318,6 +447,8 @@
                 $('#timer-value').text(timerValue);
 
             } ,1000);
+
+
 
 
             //Soummission du modal de connexion.
@@ -341,6 +472,12 @@
                 return false;
             });
 
+            $('#board-submit').click(function() {
+                var board = getBoard();
+                socket.emit('send', 'TROUVE/' + board + '/\n');
+                // console.log(board);
+            });
+
             //Réponse à la soummission du modal de connxion par le socket.
             socket.on('connectionRequestAnswer', function(msg, code) {
 
@@ -350,7 +487,6 @@
                     initBoard();
                     connectedPlayers.push(clientUsername);
                     $('#connectionModal').modal('hide');
-
                 } else {
                     $('#alert-placeholder').append(newErrorAlert(msg));
                 }
@@ -358,32 +494,121 @@
 
             socket.on('receive', function (data) {
                 console.log("received : " + data);
-                var args = data.split("/");
-                console.log(args[0]);
+                var cmds = data.split('\n');
+                for (var i in cmds) {
+                    var args = cmds[i].split("/");
+                    console.log(args[0]);
 
-                switch (args[0]) {
-                    case 'RECEPTION':
-                        receptionChat(args);
-                        break;
-                    case 'PRECEPTION':
-                        receptionChatPrive(args);
-                        break;
-                    case 'BIENVENUE' :
-                        bienvenue(args);
-                        break;
-                    case 'CONNECTE':
-                        connecte(args);
-                        break;
-                    case 'DECONNEXION':
-                        deconnexion(args);
-                        break;
-                    default:
-                        console.log("Unhandled command : " + args[0]);
+                    switch (args[0]) {
+                        case 'RECEPTION':
+                            receptionChat(args);
+                            break;
+                        case 'PRECEPTION':
+                            receptionChatPrive(args);
+                            break;
+                        case 'BIENVENUE' :
+                            bienvenue(args);
+                            break;
+                        case 'CONNECTE':
+                            connecte(args);
+                            break;
+                        case 'DECONNEXION':
+                            deconnexion(args);
+                            break;
+                        case 'TOUR':
+                            tour(args);
+                            break;
+                        case 'RINVALIDE':
+                            solutionInvalide(args)
+                            break;
+                        case 'RVALIDE':
+                            solutionValide(args);
+                            break;
+                        case 'SINVALIDE':
+                            solutionInvalide(args)
+                            break;
+                        case 'SVALIDE':
+                            solutionValide(args);
+                            break;
+                        case 'RATROUVE':
+                            ratrouve(args);
+                            break;
+                        case 'SFIN':
+                            sfin(args);
+                            break;
+                        case 'RFIN':
+                            sfin(args);
+                            break;
+                        case 'BILAN':
+                            bilan(args);
+                            break;
+                        default:
+                            console.log("Unhandled command : " + args[0]);
+                    }
                 }
 
 
             });
 
+            function bilan(args) {
+                console.log('Traitement du bilan');
+                newBilanWindow(args[2], args[1], args[3]);
+                changePhase('RES');
+            }
+
+            function rfin() {
+                displaySuccess('Fin de la phase de recherche.', '');
+                changePhase('SOU');
+            }
+
+            function sfin() {
+                displaySuccess('Fin de la phase de soumission.', '');
+                changePhase('RES');
+            }
+
+            function ratrouve(args) {
+                displaySuccess(args[1] + ' a trouvé une solution!', '');
+                changePhase('SOU');
+            }
+
+            function solutionValide(args) {
+                displaySuccess('Valide', 'Votre placement a été validé par le serveur.');
+            }
+
+            function solutionInvalide(args) {
+                displayError('Solution invalide', args[1]);
+
+            }
+
+            function displayAlert(alert) {
+                $('#alert-container').append(alert);
+            }
+
+            function displayError(title, content) {
+                displayAlert(getAlertError(title, content));
+            }
+
+            function displaySuccess(title, content) {
+                displayAlert(getAlertSuccess(title, content));
+            }
+
+            function getAlertSuccess(title, content) {
+                var alert = $('<div class="alert alert-success fade in">');
+                alert.append('<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>', '<strong>' + title + '</strong>', ' ' + content);
+                return alert;
+            }
+
+            function getAlertError(title, content) {
+                var alert = $('<div class="alert alert-danger fade in">');
+                alert.append('<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>', '<strong>' + title + '</strong>', ' ' + content);
+                return alert;
+            }
+
+            function tour(args) {
+                parseBoardState(args[1]);
+                parseDraw(args[2]);
+                changePhase('REC');
+            }
 
             function initBoard() {
                 socket.emit('send', 'CONNEXION/' + clientUsername + "/\n");
@@ -413,7 +638,7 @@
                 var state = args[4];
                 var temps = args[5];
 
-                currentState = state;
+                changePhase(state);
                 $('#timer-value').text(temps);
 
                 parseBoardState(board);
@@ -433,20 +658,56 @@
             }
 
             function parseDraw(draw) {
+                $('.draw-list').empty()
+
                 for (i = 0; i < draw.length; i++) {
-                    $('#draw-' + i).text(draw[i]);
+                    addDrawElementToDrawList(draw[i]);
                 }
             }
 
             function parseBoardState(board) {
+                var crtCase;
+
+
                 for(i = 0; i < board.length; i++) {
                     c = board[i];
                     x = i % BOARD_SIZE;
                     y = (i / BOARD_SIZE) | 0;
                     if (c != '0') {
-                        $('#row-' + y + " #col-" + x).text(c);
+                        $('#row-' + y + " #col-" + x).text(c).addClass('full-case').removeClass('case-dropped').removeClass('empty-case');
+                    } else {
+                        crtCase = $('#row-' + y + " #col-" + x);
+                        crtCase.text('');
+                        crtCase.droppable( {
+                            accept: '.draw-element',
+                            hoverClass: 'case-drop-hovered',
+                            drop: handleLetterDrop
+                        } );
+                        crtCase.addClass('empty-case').removeClass('case-dropped');
                     }
                 }
+
+            }
+
+            function handleLetterDrop(event, ui) {
+                var draggable = ui.draggable;
+                var slot =  $(this);
+                var letter = draggable.text();
+
+                draggable.remove();
+                slot.text(letter);
+                slot.droppable('disable');
+                slot.addClass('case-dropped');
+                slot.click(function() {
+                    var l = slot.text();
+                    if (l != '') {
+                        slot.removeClass('case-dropped');
+                        slot.droppable('enable');
+                        addDrawElementToDrawList(l);
+                    }
+
+                    slot.text('');
+                });
 
             }
 
@@ -520,7 +781,6 @@
                 var form = $('<form action="">');
                 var input = $('<input placeholder="Écrits des bails ici." id="chat-input" autocomplete="off" />');
                 var btn = $('<button type="submit">').text('Envoyer');
-                // var hidden = $('<input type="hidden" class="mp-username-v" value="' + username + '" />')
                 form.append(input, btn);
                 mContainer.append(messageList);
                 result.append(header, mContainer, form);
@@ -543,6 +803,99 @@
 
                 return result;
             }
+
+            function getBoard() {
+                var result = '';
+                var value;
+                for (var i = 0; i < BOARD_SIZE; i++) {
+                    for (var j = 0; j < BOARD_SIZE; j++) {
+                        value = $('#row-' + i + " #col-" + j).text();
+                        if (value == '')
+                            value = '0';
+                        result += value;
+                    }
+                }
+
+                return result;
+            }
+
+            function changePhase(newPhase) {
+                console.log('switching to ' + newPhase);
+
+                var phaseValue = 'Inconnue';
+                switch (newPhase) {
+    			case 'DEB':
+    				phaseValue = 'Début';
+                    break;
+    			case 'REC':
+                    phaseValue = 'Recherche';
+                    $('#timer-value').text(REC_LENGTH);
+                    break;
+    			case 'SOU':
+                    phaseValue = 'Soumission';
+                    $('#timer-value').text(SOU_LENGTH);
+                    break;
+    			case 'RES':
+                    phaseValue = 'Résultat';
+                    $('#timer-value').text(RES_LENGTH);
+                    resMode();
+                    break;
+    			}
+
+                currentState = newPhase;
+
+                $('#phase').text(phaseValue);
+            }
+
+            function switchToNewPhase() {
+                switch (currentState) {
+                    case 'DEB':
+                        changePhase('REC');
+                        break;
+        			case 'REC':
+                        changePhase('SOU');
+                        break;
+        			case 'SOU':
+                        changePhase('RES');
+                        break;
+        			case 'RES':
+                        changePhase('DEB');
+                        break;
+                }
+            }
+
+            function resMode() {
+                $('.draw-list').empty();
+                $('#board-submit').disabled = true;
+            }
+
+            function newBilanWindow(winner, word, scores) {
+                var roundNumber;
+                var scoreList = $('<ul>');
+                var split = scores.split(/\*/g);
+                roundNumber = split[0];
+                for (i = 1; i < split.length; i+=2) {
+                    scoreList.append($('<li id="li-' + split[i] + '" >').append(getUserLink(split[i], false), " " + split[i+1]));
+                }
+
+                var mainContainer = $('<div class="bilan">');
+                var header = $('<h3 class="window-header">').text('Bilan round ' + roundNumber);
+                var winnerTag = $('<h4>').append('Vainqueur :', '<br />', getUserLink(winner, false), ' avec le mot ', '<strong>' + word + '</strong>');
+                var btnContainer = $('<div class="button-container">');
+                var closeBtn = $('<button>').text('Fermer').click(function() {
+                    mainContainer.remove();
+                });
+
+                btnContainer.append(closeBtn);
+
+                mainContainer.append(header, winnerTag,'<h4>Scores</h4>', scoreList, btnContainer);
+
+                mainContainer.draggable();
+                $('body').append(mainContainer);
+            }
+
+
+
 
         });
 
