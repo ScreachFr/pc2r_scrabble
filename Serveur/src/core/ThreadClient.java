@@ -1,5 +1,7 @@
 package core;
 
+import game.exceptions.PropositionException;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -107,8 +109,17 @@ public class ThreadClient implements Runnable {
 	}
 
 	private void propositionMotClient(String[] args) {
-		// TODO Auto-generated method stub
-
+		if (args.length < 2) {
+			envoyerMessage("RINVALIDE", "Too few args.");
+			return;
+		}
+			
+		try {
+			motherBrain.submitProposition(this, args[1]);
+		} catch (PropositionException e) {
+			envoyerMessage("RINVALIDE", e.getMessage());
+		}
+		
 	}
 
 	private void deconnexionClient(String[] args) {
@@ -152,6 +163,14 @@ public class ThreadClient implements Runnable {
 
 	private void refusConnexion(String why) {
 		envoyerMessage("REFUS", why);
+	}
+	
+	public void sendRVALIDE() {
+		envoyerMessage("RVALIDE");
+	}
+	
+	public void sendSVALIDE() {
+		envoyerMessage("SVALIDE");
 	}
 	
 	public synchronized void envoyerMessage(String domaine, String...strings) {

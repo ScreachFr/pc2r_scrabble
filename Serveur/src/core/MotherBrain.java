@@ -1,6 +1,8 @@
 package core;
 
+import game.Proposition;
 import game.Scrabble;
+import game.exceptions.PropositionException;
 import game.pouches.RandomPouch;
 import game.wordchecker.DumbWordChecker;
 
@@ -89,7 +91,7 @@ public class MotherBrain implements Runnable {
 	}
 
 	public void initScrabble() {
-		scrabble = new Scrabble(new RandomPouch(Scrabble.DEFAULT_POUCH_SIZE), new DumbWordChecker());
+		scrabble = new Scrabble(new RandomPouch(Scrabble.DEFAULT_POUCH_SIZE), new DumbWordChecker(), this);
 	}
 	
 	public synchronized String[] sessionState() {
@@ -109,8 +111,6 @@ public class MotherBrain implements Runnable {
 		if (threadsClient.size() == 0) 
 			scrabble.stopGame();
 		
-		
-		
 	}
 
 	public void envoiMessage(String msg, String username) {
@@ -120,5 +120,39 @@ public class MotherBrain implements Runnable {
 	public void envoiMessagePrive(String msg, String emetteur, String destinataire) {
 		broadcaster.broadcastPrive("PRECEPTION", destinataire, new String[]{msg, emetteur});
 	}
+
+	public void submitProposition(ThreadClient client, String propositionString) throws PropositionException {
+		Proposition p = new Proposition(client, propositionString, System.currentTimeMillis());
+		
+		scrabble.submitProposition(p);
+	}
+	
+	public void broadcastFinRecherche() {
+		broadcaster.broadcast("RFIN");
+	}
+	
+	public void broadcastFinSoumission() {
+		broadcaster.broadcast("SFIN");
+	}
+	
+	public void broadcastNewSession() {
+		broadcaster.broadcast("SESSION");
+	}
+	
+	public void broadcastNewRound(String board, String draw) {
+		broadcaster.broadcast("TOUR", board, draw);
+	}
+	
+	//RATROUVE/user/
+	public void broadcastRATROUVE(String user) {
+		broadcaster.broadcast("RATROUVE", user);
+	}
+	
+	
+	//BILAN/mot/vainqueur/scores/
+	public void broadcastBilan(String mot, String vainqueur, String scores) {
+		broadcaster.broadcast("BILAN", mot, vainqueur, scores);
+	}
+	
 	
 }

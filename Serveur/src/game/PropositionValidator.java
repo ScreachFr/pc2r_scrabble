@@ -1,5 +1,6 @@
 package game;
 
+import game.Scrabble.Phase;
 import game.exceptions.WordPlacementException;
 
 import java.util.ArrayList;
@@ -46,8 +47,12 @@ public class PropositionValidator implements Runnable {
 					currentProposition = toValidate.remove(0);
 					try {
 						scrabble.proposeBoard(currentProposition);
-						
-						currentProposition.getClient().envoyerMessage("RVALIDE");
+						if (scrabble.getCurrentPhase() == Phase.REC) {
+							currentProposition.getClient().sendRVALIDE();
+							scrabble.interruptGameLoop();
+							
+						} else if (scrabble.getCurrentPhase() == Phase.SOU)
+							currentProposition.getClient().sendSVALIDE();
 					} catch (WordPlacementException e) {
 						currentProposition.getClient().envoyerMessage("RINVALIDE", e.getWhy()+"");
 					}

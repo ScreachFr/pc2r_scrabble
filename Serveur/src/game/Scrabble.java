@@ -12,13 +12,20 @@ import java.util.HashMap;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
+import core.MotherBrain;
 import javafx.util.Pair;
 
 public class Scrabble implements Runnable {
+	private final static int fiveMinutes = 300;
+	private final static int twoMinutes = 120;
+
 	private final static int BOARD_SIZE = 3; //XXX Était à 15 XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX
 	private final static int DRAW_SIZE = 7;
 	public final static int DEFAULT_POUCH_SIZE = 52; 
 	private final static Character NULL_CHAR = '0';
+	private final static long RECHERCHE_TIME = fiveMinutes * 1000;
+	private final static long SOUMISSION_TIME = twoMinutes * 1000;
+	private final static long RESULTATS_TIME = 10 * 1000;
 
 	private Lock lock;
 	private Condition nextGameState;
@@ -38,29 +45,33 @@ public class Scrabble implements Runnable {
 	//Trucs qui doivent être thread safe.
 	//TODO Ajouter une liste de proposition. Une proposition doit avoir un état de jeu, un timestamp et des points(?).
 	private ArrayList<Proposition> roundProposition;
-	private Proposition bestProposition;
+	private Proposition firstProposition;
 	private PropositionValidator propositionValidator;
 	private Thread propositionValidatorThread;
+
+	private Thread gameLoopThread;
 
 	//cache
 	private String lazyBoardState;
 	private String lazyCurrentDraw;
 	private String lazyScores;
 
-	private final static int fiveMinutes = 300;
-	private final static int twoMinutes = 120;
-
 	private boolean isGameOn; 
 
-	public Scrabble(Pouch pouch, WordChecker wordChecker) {
+	private MotherBrain motherBrain;
+
+	public Scrabble(Pouch pouch, WordChecker wordChecker, MotherBrain motherBrain) {
 		this.pouch = pouch;
 		this.wordChecker = wordChecker;
+		this.motherBrain = motherBrain;
+
 		board = new char[BOARD_SIZE][BOARD_SIZE];
 		currentDraw = new ArrayList<Character>();
 		scores = new HashMap<>();
 		roundProposition = new ArrayList<>();
 		isGameOn = false;
 		propositionValidator = new PropositionValidator(this);
+		gameLoopThread = new Thread(this);
 		//		initBoard();
 		//		refreshBoardState();
 		//		pouch.resetLetters();
@@ -78,7 +89,7 @@ public class Scrabble implements Runnable {
 		refreshBoardState();
 		switchToNextPhase();
 		pouch.resetLetters();
-		currentRound = 1;
+		currentRound = 0;
 		propositionValidatorThread = new Thread(propositionValidator);
 		propositionValidatorThread.start();
 		try {
@@ -93,15 +104,8 @@ public class Scrabble implements Runnable {
 
 	public void stopGame() {
 		System.out.println("Arrêt de la partie.");
-
-	}
-
-	public void launchRound() {
-		System.out.println("Début du round.");
-	}
-
-	public void stopRound() {
-		System.out.println("Fin du round.");
+		isGameOn = false;
+		gameLoopThread.interrupt();
 	}
 
 
@@ -109,10 +113,59 @@ public class Scrabble implements Runnable {
 	public void run() {
 
 		while (isGameOn) {
-			//Début tour
-			//Phase de Recherche
-			//Phase de soumission
-			//Phase de résultat
+			try {
+				//Début tour
+				drawLetters();
+				currentRound++;
+				roundProposition.clear();
+				firstProposition = null;
+				refreshBoardState();
+				motherBrain.broadcastNewSession();
+				motherBrain.broadcastNewRound(lazyBoardState, lazyCurrentDraw);
+
+				//Phase de Recherche
+				switchToNextPhase();
+				try {
+					Thread.sleep(RECHERCHE_TIME);
+				} catch (InterruptedException e) {
+					if (!isGameOn)
+						break;
+				}
+				
+				if (firstProposition != null) {
+					motherBrain.broadcastRATROUVE(firstProposition.getClient().getUsername());
+					motherBrain.broadcastFinRecherche();
+				} else { //Aucune proposition.
+					motherBrain.broadcastFinRecherche();
+					continue;
+				}
+				
+
+				//Phase de soumission
+				switchToNextPhase();
+				try {
+					Thread.sleep(SOUMISSION_TIME);
+				} catch (InterruptedException e) {
+					if (!isGameOn)
+						break;
+				}
+
+				motherBrain.broadcastFinSoumission();
+
+				//Phase de résultat
+				switchToNextPhase();
+//				motherBrain.broadcastBilan(mot, vainqueur, scores);
+				
+				try {
+					Thread.sleep(RESULTATS_TIME);
+				} catch (InterruptedException e) {
+					if (!isGameOn)
+						break;
+				}
+				
+			} catch(EmptyPouchException e) {
+				//TODO fin de la session.
+			}
 		}
 	}
 
@@ -125,6 +178,10 @@ public class Scrabble implements Runnable {
 		currentPhaseStartingTime = System.currentTimeMillis();
 	}
 
+	public void interruptGameLoop() {
+		gameLoopThread.interrupt();
+	}
+	
 	/**FIN CONTROLEURS**/
 
 
@@ -228,7 +285,11 @@ public class Scrabble implements Runnable {
 		proposition.setScore(findScore(solutions));
 		proposition.setValidated(true);
 		
+		if (currentPhase == Phase.REC && firstProposition == null) 
+			firstProposition = proposition;
+
 		roundProposition.add(proposition);
+		
 		
 		return true;
 	}
@@ -563,6 +624,10 @@ public class Scrabble implements Runnable {
 	}
 
 
+	public Phase getCurrentPhase() {
+		return currentPhase;
+	}
+	
 	// XXX pour debug, rien d'autre!
 	public void setBoard(char[][] board) {
 		this.board = board;
@@ -715,7 +780,7 @@ public class Scrabble implements Runnable {
 	}
 
 	public static void main(String[] args) {
-		Scrabble s = new Scrabble(new RandomPouch(42), null);
+		Scrabble s = new Scrabble(new RandomPouch(42), null, null);
 
 		char[][] b1 = new char[][]{{'0', '0', '0'}, {'A', 'B', 'C'}, {'0', '0', '0'}};
 		char[][] b2 = new char[][]{{'0', '0', '0'}, {'0', '0', '0'}, {'0', '0', '0'}};
