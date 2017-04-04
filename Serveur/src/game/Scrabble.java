@@ -5,6 +5,7 @@ import game.exceptions.PropositionException;
 import game.exceptions.WordPlacementException;
 import game.exceptions.WordPlacementException.Why;
 import game.pouches.RandomPouch;
+import game.wordchecker.DumbWordChecker;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -280,7 +281,7 @@ public class Scrabble implements Runnable {
 	public boolean proposeBoard(Proposition proposition) throws WordPlacementException {
 		char[][] parsedProposition = toArray(proposition.getProposition());
 		proposition.setParsedBoard(parsedProposition);
-
+		
 		if (!isPropositionValid(parsedProposition))
 			throw new WordPlacementException("Modification des lettres déjà présentes.", Why.INVALID_PROPOSITION);
 
@@ -299,10 +300,8 @@ public class Scrabble implements Runnable {
 
 		ArrayList<Pair<String, ProposedLetter[]>> solutions = findNewWords(newLetters, isVertical, parsedProposition);
 
-		if (solutions.isEmpty())
+		if (solutions.isEmpty()) // N'arrive jamais, normalement
 			throw new WordPlacementException("Pas de nouveaux mots trouvés", Why.INVALID_PROPOSITION);
-		
-		System.out.println("solutions.size() = " + solutions.size());
 		
 		ArrayList<String> listWords = new ArrayList<>();
 		for (Pair<String, ProposedLetter[]> pair : solutions)
@@ -842,7 +841,7 @@ public class Scrabble implements Runnable {
 	}
 
 	public static void main(String[] args) {
-		Scrabble s = new Scrabble(new RandomPouch(42), null, null);
+		Scrabble s = new Scrabble(new RandomPouch(42), new DumbWordChecker(), null);
 
 //		char[][] b1 = new char[][]{{'0', '0', '0'}, {'A', 'B', 'C'}, {'0', '0', '0'}};
 //		char[][] b2 = new char[][]{{'0', '0', '0'}, {'0', '0', '0'}, {'0', '0', '0'}};
@@ -906,10 +905,18 @@ public class Scrabble implements Runnable {
 													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'}};
-		Proposition testProposition = new Proposition(null, "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000TABLE0000000000A00000000000000T00000000000000A0000000000000000000000000000000000000000000000000000000000000000000000000000000000", 40);
+		Proposition testPropositionSucc = new Proposition(null, "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000TABLE0000000000A00000000000000T00000000000000A0000000000000000000000000000000000000000000000000000000000000000000000000000000000", 40);
+		// Trou dans le mot
+		Proposition testPropositionFail1 = new Proposition(null, "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000TABL0E000000000A00000000000000T00000000000000A0000000000000000000000000000000000000000000000000000000000000000000000000000000000", 40);
+		// Pas raccord
+		Proposition testPropositionFail2 = new Proposition(null, "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000T0BLE0000000000A00000000000000T00000000000000A0000000000000000000000000000000000000000000000000000000000000000000000000000000000", 40);
 		s.setBoard(testBoard);
 		try {
-			s.proposeBoard(testProposition);
+			s.proposeBoard(testPropositionFail2);
+			if (s.roundProposition.get(s.roundProposition.size() - 1).equals(testPropositionFail2))
+				System.out.println("success");
+			else
+				System.out.println("failure");
 		} catch (WordPlacementException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
