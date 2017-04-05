@@ -4,12 +4,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.text.Normalizer;
 import java.util.HashSet;
 import java.util.Scanner;
-import java.util.regex.Pattern;
 
 import game.WordChecker;
 
@@ -26,8 +22,6 @@ public class FrenchLocalWordChecker implements WordChecker {
 
 
 	private void loadDico() throws FileNotFoundException {
-		//iso-8859-1
-		
 		Scanner sc = new Scanner(new BufferedReader(new FileReader(new File(path))));
 
 		while(sc.hasNextLine())  {

@@ -159,10 +159,6 @@ public class ThreadClient implements Runnable {
 		envoyerMessage("BIENVENUE", pTSPT);
 	}
 
-	private void refusConnexion() {
-		envoyerMessage("REFUS");
-	}
-
 	private void refusConnexion(String why) {
 		envoyerMessage("REFUS", why);
 	}

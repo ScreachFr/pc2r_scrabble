@@ -4,9 +4,9 @@ import game.Proposition;
 import game.Scrabble;
 import game.exceptions.PropositionException;
 import game.pouches.FrenchPouch;
-import game.pouches.RandomPouch;
-import game.wordchecker.DumbWordChecker;
+import game.wordchecker.FrenchLocalWordChecker;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
@@ -30,7 +30,6 @@ public class MotherBrain implements Runnable {
 	private Lock clientListLock;
 	private int playerCount;
 	
-	private boolean useOnlineDico;
 
 	public MotherBrain(int playerLimit, ServerSocket socket) {
 		this.playerLimit = playerLimit;
@@ -42,19 +41,18 @@ public class MotherBrain implements Runnable {
 		clientListLock = new ReentrantLock();
 		playerCount = 0;
 		
-		useOnlineDico = false;
 	}
-	
-	public MotherBrain(int playerLimit, ServerSocket socket, boolean userOnlineDico) {
-		this(playerLimit, socket);
-		this.useOnlineDico = userOnlineDico;
-	}
-	
 
 	@Override
 	public void run() {
 		threadBroadcaster.start();
-		initScrabble();
+		try {
+			initScrabble();
+		} catch (FileNotFoundException e1) {
+			System.out.println("Couldn't load work checker. Stopping...");
+			e1.printStackTrace();
+			return;
+		}
 
 		Socket crtSocket;
 		while (true) { //TODO
@@ -131,8 +129,8 @@ public class MotherBrain implements Runnable {
 		}
 	}
 
-	public void initScrabble() {
-		scrabble = new Scrabble(new FrenchPouch(), new DumbWordChecker(), this);
+	public void initScrabble() throws FileNotFoundException {
+		scrabble = new Scrabble(new FrenchPouch(), new FrenchLocalWordChecker(), this);
 	}
 
 	public synchronized String[] sessionState() {
