@@ -548,12 +548,12 @@ public class Scrabble implements Runnable {
 				if ((constY != 0 && board[letter.getX()][constY - 1] != NULL_CHAR) ||
 						(constY != BOARD_SIZE - 1 && board[letter.getX()][constY + 1] != NULL_CHAR)) {
 					ProposedLetter[] l = { letter };
-					newWords.add(new Pair<String, ProposedLetter[]>(findHorizontalWord(l, letter.getX()), l));
+					newWords.add(new Pair<String, ProposedLetter[]>(findVerticalWord(l, letter.getX()), l));
 				}
 			}
 			ProposedLetter[] nL = new ProposedLetter[newLetters.size()];
 			newLetters.toArray(nL);
-			newWords.add(new Pair<String, ProposedLetter[]>(findVerticalWord(nL, constY), nL));
+			newWords.add(new Pair<String, ProposedLetter[]>(findHorizontalWord(nL, constY), nL));
 		}
 		return newWords;
 	}
