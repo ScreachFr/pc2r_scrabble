@@ -13,6 +13,8 @@ import java.util.HashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.sun.org.apache.bcel.internal.generic.FNEG;
+
 import core.MotherBrain;
 import javafx.util.Pair;
 
@@ -317,6 +319,8 @@ public class Scrabble implements Runnable {
 
 		ArrayList<Pair<String, ProposedLetter[]>> solutions = findNewWords(newLetters, isVertical, parsedProposition);
 
+		System.out.println("solution.size() = " + solutions.size());
+		
 		if (solutions.isEmpty()) // N'arrive jamais, normalement
 			throw new WordPlacementException("Pas de nouveaux mots trouvés", Why.INVALID_PROPOSITION);
 		
@@ -515,24 +519,21 @@ public class Scrabble implements Runnable {
 	public ArrayList<Pair<String, ProposedLetter[]>> 
 	findNewWords(ArrayList<ProposedLetter> newLetters, boolean isVertical, char[][] proposedBoard) throws WordPlacementException {
 		ArrayList<Pair<String, ProposedLetter[]>> newWords = new ArrayList<>();
-		if (isVertical) {
-			int constY = newLetters.get(0).getY();
-			for (ProposedLetter letter : newLetters) { // verification si c'est intéressant de chercher un mot utilisant une seule des lettres proposées
-				if ((constY != 0 && board[constY - 1][letter.getX()] != NULL_CHAR) ||
-						(constY != BOARD_SIZE - 1 && board[constY + 1][letter.getX()] != NULL_CHAR)) {
-					ProposedLetter[] l = { letter };
-					newWords.add(new Pair<String, ProposedLetter[]>(findHorizontalWord(l, letter.getX()), l));
-				}
-			}
-			ProposedLetter[] nL = new ProposedLetter[newLetters.size()];
-			newLetters.toArray(nL);
-			newWords.add(new Pair<String, ProposedLetter[]>(findVerticalWord(nL, constY), nL));
+		if (newLetters.size() == 1) {
+			ProposedLetter pl = newLetters.get(0);
+			ProposedLetter[] plArray = { pl };
+			String verticalW = findVerticalWord(plArray, pl.getY());
+			if (verticalW.length() > 1)
+				newWords.add(new Pair<String, ProposedLetter[]>(verticalW, plArray));
+			String horizontalW = findHorizontalWord(plArray, pl.getX());
+			if (horizontalW.length() > 1)
+				newWords.add(new Pair<String, ProposedLetter[]>(horizontalW, plArray));
 		}
-		else {
+		else if (isVertical) {
 			int constX = newLetters.get(0).getX();
-			for (ProposedLetter letter : newLetters) {
-				if ((constX != 0 && board[constX - 1][letter.getY()] != NULL_CHAR) ||
-						(constX != BOARD_SIZE - 1 && board[constX + 1][letter.getY()] != NULL_CHAR)) {
+			for (ProposedLetter letter : newLetters) { // verification si c'est intéressant de chercher un mot utilisant une seule des lettres proposées
+				if ((constX != 0 && board[letter.getY()][constX - 1] != NULL_CHAR) ||
+						(constX != BOARD_SIZE - 1 && board[letter.getY()][constX + 1] != NULL_CHAR)) {
 					ProposedLetter[] l = { letter };
 					newWords.add(new Pair<String, ProposedLetter[]>(findHorizontalWord(l, letter.getY()), l));
 				}
@@ -541,10 +542,23 @@ public class Scrabble implements Runnable {
 			newLetters.toArray(nL);
 			newWords.add(new Pair<String, ProposedLetter[]>(findVerticalWord(nL, constX), nL));
 		}
+		else {
+			int constY = newLetters.get(0).getY();
+			for (ProposedLetter letter : newLetters) {
+				if ((constY != 0 && board[letter.getX()][constY - 1] != NULL_CHAR) ||
+						(constY != BOARD_SIZE - 1 && board[letter.getX()][constY + 1] != NULL_CHAR)) {
+					ProposedLetter[] l = { letter };
+					newWords.add(new Pair<String, ProposedLetter[]>(findHorizontalWord(l, letter.getX()), l));
+				}
+			}
+			ProposedLetter[] nL = new ProposedLetter[newLetters.size()];
+			newLetters.toArray(nL);
+			newWords.add(new Pair<String, ProposedLetter[]>(findVerticalWord(nL, constY), nL));
+		}
 		return newWords;
 	}
 
-	private String findVerticalWord(ProposedLetter[] l, int y) throws WordPlacementException {
+	private String findHorizontalWord(ProposedLetter[] l, int x) throws WordPlacementException {
 		for (ProposedLetter proposedLetter : l) {
 			System.out.println("x,y = " + proposedLetter.getX() + "," + proposedLetter.getY() + " ; letter = " + proposedLetter.getLetter());
 		}
@@ -552,7 +566,7 @@ public class Scrabble implements Runnable {
 		boolean isNewWord = false;
 		ProposedLetter curLetter;
 		int counter = l.length; // pour verifier si il y a des trous (= toutes les lettres sont utilises)
-		for (int x = 0 ; x < BOARD_SIZE ; x++) {
+		for (int y = 0 ; y < BOARD_SIZE ; y++) {
 			curLetter = findLetter(l, x, y);
 			System.out.println("isNewWord = " + isNewWord);
 			System.out.println("counter = " + counter);
@@ -575,13 +589,19 @@ public class Scrabble implements Runnable {
 		return newWord;
 	}
 
-	private String findHorizontalWord(ProposedLetter[] l, int x) throws WordPlacementException {
+	private String findVerticalWord(ProposedLetter[] l, int y) throws WordPlacementException {
+		for (ProposedLetter proposedLetter : l) {
+			System.out.println("x,y = " + proposedLetter.getX() + "," + proposedLetter.getY() + " ; letter = " + proposedLetter.getLetter());
+		}
 		String newWord = "";
 		boolean isNewWord = false;
 		ProposedLetter curLetter;
 		int counter = l.length;
-		for (int y = 0 ; y < BOARD_SIZE ; y++) {
+		for (int x = 0 ; x < BOARD_SIZE ; x++) {
 			curLetter = findLetter(l, x, y);
+			System.out.println("isNewWord = " + isNewWord);
+			System.out.println("counter = " + counter);
+			System.out.println("(x,y) = " + x + "," + y);
 			if (board[x][y] == NULL_CHAR && curLetter == null) {
 				if (isNewWord)
 					break;
@@ -913,8 +933,8 @@ public class Scrabble implements Runnable {
 										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
-										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
-										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
+										{'0', '0', '0', '0', '0', '0', '0', 'M'/*7,7*/, '0', '0', '0', '0', '0', '0', '0'},
+										{'0', '0', '0', '0', '0', '0', '0', 'E', '0', '0', '0', '0', '0', '0', '0'},
 										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
@@ -929,7 +949,7 @@ public class Scrabble implements Runnable {
 													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
-													{'0', '0', '0', '0', '0', '0', '0', 'L', '0', '0', '0', '0', '0', '0', '0'},
+													{'0', '0', '0', '0', '0', '0', '0', 'M'/*7,7*/, 'E', '0', '0', '0', '0', '0', '0'},
 													{'0', '0', '0', '0', '0', '0', '0', 'E', '0', '0', '0', '0', '0', '0', '0'},
 													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
@@ -937,7 +957,7 @@ public class Scrabble implements Runnable {
 													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'}};
-		Proposition testPropositionSucc = new Proposition(null, "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000L00000000000000E0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", 40);
+		Proposition testPropositionSucc = new Proposition(null, "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ME0000000000000E0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", 40);
 		// Trou dans le mot
 		Proposition testPropositionFail1 = new Proposition(null, "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000TABL0E000000000A00000000000000T00000000000000A0000000000000000000000000000000000000000000000000000000000000000000000000000000000", 40);
 		// Pas raccord
@@ -954,9 +974,4 @@ public class Scrabble implements Runnable {
 			e.printStackTrace();
 		}
 	}
-
-
-
-	
-
 }
