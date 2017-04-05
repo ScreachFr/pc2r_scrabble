@@ -687,6 +687,9 @@
 
             function displayAlert(alert) {
                 $('#alert-container').append(alert);
+                setInterval(function() {
+                    alert.remove();
+                }, 10000);
             }
 
             function displayError(title, content) {
@@ -713,6 +716,8 @@
                 unlockInput();
                 parseBoardState(args[1]);
                 parseDraw(args[2]);
+                $('#round-number').text(parseInt($('#round-number').text()) + 1);
+
                 changePhase('REC');
             }
 
@@ -731,7 +736,7 @@
 
             function connecte(args) {
                 if (!connectedPlayers.includes(args[1])) {
-                    $('#player-list').append($('<li id="li-' + args[1] + '">').append(getUserLink(args[1], true), ' 0'));
+                    $('#player-list').append($('<li id="li-' + args[1] + '">').append(getUserLink(args[1], true), $('<span id="score-' + args[1] + '">').text(' 0')));
                     connectedPlayers.push(args[1]);
                 }
 
@@ -794,6 +799,7 @@
                             drop: handleLetterDrop
                         } );
                         crtCase.addClass('empty-case').removeClass('case-dropped');
+                        crtCase.click(false);
                     }
                 }
 
@@ -810,13 +816,18 @@
                 slot.addClass('case-dropped');
                 slot.click(function() {
                     var l = slot.text();
-                    if (l != '') {
+                    // console.log('ok1');
+                    // console.log(l);
+
+
+                    if (l != '' && !slot.hasClass('full-case')) {
+                        // console.log('ok2');
                         slot.removeClass('case-dropped');
                         slot.droppable('enable');
                         addDrawElementToDrawList(l);
+                        slot.text('');
                     }
 
-                    slot.text('');
                 });
 
             }

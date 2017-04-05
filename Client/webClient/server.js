@@ -25,7 +25,12 @@ io.on('connection', function(socket){
 
     socket.on('send', function(data) {
         console.log("writing : " + data);
-        server.write(data);
+        try {
+            server.write(data);
+        } catch (e) {
+            console.log(e);
+            socket.emit('serverConnectionError');
+        }
     });
 
     socket.on('serverConnectionRequest', function(r_address, r_port, r_username) {
