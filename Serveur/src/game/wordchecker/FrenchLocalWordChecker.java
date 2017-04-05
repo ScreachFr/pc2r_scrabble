@@ -4,26 +4,32 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.text.Normalizer;
 import java.util.HashSet;
 import java.util.Scanner;
+import java.util.regex.Pattern;
 
 import game.WordChecker;
 
 public class FrenchLocalWordChecker implements WordChecker {
-	private final static String path = "dico/fr.txt";
+	private final static String path = "dico/ODS5.txt";
 
 	private HashSet<String> cache;
 
 	public FrenchLocalWordChecker() throws FileNotFoundException {
 		cache = new HashSet<String>();
-		
+
 		loadDico();
 	}
 
 
 	private void loadDico() throws FileNotFoundException {
-		Scanner sc = new Scanner(new BufferedReader(new FileReader(new File(path))));
+		//iso-8859-1
 		
+		Scanner sc = new Scanner(new BufferedReader(new FileReader(new File(path))));
+
 		while(sc.hasNextLine())  {
 			cache.add(sc.nextLine());
 		}
@@ -35,6 +41,5 @@ public class FrenchLocalWordChecker implements WordChecker {
 	public boolean isWordValid(String word) {
 		return cache.contains(word);
 	}
-
 
 }
