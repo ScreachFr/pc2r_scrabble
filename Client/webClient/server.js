@@ -21,6 +21,7 @@ io.on('connection', function(socket){
     var username;
     var server = new net.Socket();
     var isServerConnected = false;
+    var connected = false;
 
     socket.on('send', function(data) {
         console.log("writing : " + data);
@@ -43,11 +44,15 @@ io.on('connection', function(socket){
 
             server = net.createConnection(port, serverAdress).on("connect", function(e) {
                 console.log("Server connection succesful");
-
+                connected = true;
                 socket.emit('connectionRequestAnswer', "ok", 0);
             }).on("error", function(e) {
-                console.log("Can't connect to server.");
-                socket.emit('connectionRequestAnswer', "Impossible de joindre le serveur de Scrabble.", 1);
+                if (connected) {
+                    socket.emit('serverConnectionError');
+                } else {
+                    console.log("Can't connect to server.");
+                    socket.emit('connectionRequestAnswer', "Impossible de joindre le serveur de Scrabble.", 1);
+                }
             });
 
             server.on('data', function(data) {
@@ -55,7 +60,10 @@ io.on('connection', function(socket){
                 socket.emit("receive", data.toString('utf8'));
             });
 
-
+            server.on('close', function() {
+                console.log('Server connection closed.');
+                socket.emit('serverConnectionError');
+            });
 
         } else {
             socket.emit('connectionRequestAnswer', 'Too few args.', 1);
@@ -67,18 +75,3 @@ io.on('connection', function(socket){
         server.destroy();
     });
 });
-
-
-// client.connect(42666, '127.0.0.1', function() {
-// 	console.log('Connected');
-// 	client.write('Hello, server! Love, Client.');
-// });
-//
-// client.on('data', function(data) {
-// 	console.log('Received: ' + data);
-// 	client.destroy(); // kill client after server's response
-// });
-//
-// client.on('close', function() {
-// 	console.log('Connection closed');
-// });
