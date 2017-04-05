@@ -326,18 +326,7 @@ public class Scrabble implements Runnable {
 		if (!validateMultipleWords(listWords))
 			throw new WordPlacementException("Un ou plusieurs de vos mot n'est pas valide.", Why.INVALID_PROPOSITION); //TODO : garder le mot qui pose problème
 
-		//		if (plateauNeContientPasDeMots) { // TODO : tester (et ajouter une identification qu'il n'y a qu'un mot)
-		//			boolean useBoardLetter = false; // Sert à indiquer si aucune mot n'utilise des lettres déjà sur le plateau
-		//			for (Pair<String, ProposedLetter[]> pair : solutions) {
-		//				useBoardLetter = pair.getKey().length() == pair.getValue().length;
-		//				if (useBoardLetter)
-		//					break;
-		//			}
-		//		}
-		//		if (! useBoardLetter)
-		//			throw new WordPlacementException(Why.INVALID_PROPOSITION);
-
-
+		checkPropositionLinkedToBoard(solutions);
 
 		proposition.addFoundWord(listWords);
 		proposition.setScore(findScore(solutions));
@@ -564,7 +553,7 @@ public class Scrabble implements Runnable {
 			curLetter = findLetter(l, x, y);
 			if (board[x][y] == NULL_CHAR && curLetter == null) {
 				if (isNewWord)
-					return newWord;
+					break;		// pour pouvoir vérifier le counter
 				newWord = "";
 			}
 			else if (board[x][y] != NULL_CHAR)
@@ -576,7 +565,7 @@ public class Scrabble implements Runnable {
 			}
 		}
 		if (counter != 0)
-			throw new WordPlacementException("Pas de mot trouvé (V).", Why.INVALID_PROPOSITION);
+			throw new WordPlacementException("Trou repéré dans le mot de début " + newWord + " (V).", Why.INVALID_PROPOSITION);
 		return newWord;
 	}
 
@@ -589,7 +578,7 @@ public class Scrabble implements Runnable {
 			curLetter = findLetter(l, x, y);
 			if (board[x][y] == NULL_CHAR && curLetter == null) {
 				if (isNewWord)
-					return newWord;
+					break;
 				newWord = "";
 			}
 			else if (board[x][y] != NULL_CHAR)
@@ -601,7 +590,7 @@ public class Scrabble implements Runnable {
 			}
 		}
 		if (counter != 0)
-			throw new WordPlacementException("Pas de mot trouvé (H).", Why.INVALID_PROPOSITION);
+			throw new WordPlacementException("Trou repéré dans le mot de début " + newWord + " (H).", Why.INVALID_PROPOSITION);
 		return newWord;
 	}
 
@@ -615,6 +604,25 @@ public class Scrabble implements Runnable {
 
 	private boolean validateMultipleWords(ArrayList<String> words) {
 		return words.stream().allMatch(w -> wordChecker.isWordValid(w));
+	}
+	
+	private void checkPropositionLinkedToBoard(
+			ArrayList<Pair<String, ProposedLetter[]>> solutions) throws WordPlacementException {
+		if (currentRound != 1) {
+			for (Pair<String, ProposedLetter[]> pair : solutions) {
+				if (pair.getKey().length() != pair.getValue().length) // Sert à indiquer si un mot utilise des lettres déjà sur le plateau
+					return;
+			}
+			throw new WordPlacementException("Aucune des lettres n'est connecté au reste du plateau", Why.INVALID_PROPOSITION);
+		}
+		else {
+			for (Pair<String, ProposedLetter[]> pair : solutions) {
+				for (ProposedLetter letter : pair.getValue())
+					if (letter.getX() == BOARD_SIZE / 2 && letter.getY() == BOARD_SIZE / 2)
+						return;
+			}
+			throw new WordPlacementException("Le 1er mot doit passer par le milieu du plateau", Why.INVALID_PROPOSITION);
+		}
 	}
 
 	/**
@@ -930,8 +938,8 @@ public class Scrabble implements Runnable {
 		Proposition testPropositionFail2 = new Proposition(null, "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000T0BLE0000000000A00000000000000T00000000000000A0000000000000000000000000000000000000000000000000000000000000000000000000000000000", 40);
 		s.setBoard(testBoard);
 		try {
-			s.proposeBoard(testPropositionFail2);
-			if (s.roundProposition.get(s.roundProposition.size() - 1).equals(testPropositionFail2))
+			s.proposeBoard(testPropositionSucc);
+			if (s.roundProposition.get(s.roundProposition.size() - 1).equals(testPropositionSucc))
 				System.out.println("success");
 			else
 				System.out.println("failure");
