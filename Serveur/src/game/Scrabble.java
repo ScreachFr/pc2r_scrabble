@@ -530,30 +530,30 @@ public class Scrabble implements Runnable {
 				newWords.add(new Pair<String, ProposedLetter[]>(horizontalW, plArray));
 		}
 		else if (isVertical) {
-			int constX = newLetters.get(0).getX();
+			int constY = newLetters.get(0).getY();
 			for (ProposedLetter letter : newLetters) { // verification si c'est intéressant de chercher un mot utilisant une seule des lettres proposées
-				if ((constX != 0 && board[letter.getY()][constX - 1] != NULL_CHAR) ||
-						(constX != BOARD_SIZE - 1 && board[letter.getY()][constX + 1] != NULL_CHAR)) {
+				if ((constY != 0 && board[constY - 1][letter.getX()] != NULL_CHAR) ||
+						(constY != BOARD_SIZE - 1 && board[constY + 1][letter.getX()] != NULL_CHAR)) {
 					ProposedLetter[] l = { letter };
-					newWords.add(new Pair<String, ProposedLetter[]>(findHorizontalWord(l, letter.getY()), l));
+					newWords.add(new Pair<String, ProposedLetter[]>(findHorizontalWord(l, letter.getX()), l));
 				}
 			}
 			ProposedLetter[] nL = new ProposedLetter[newLetters.size()];
 			newLetters.toArray(nL);
-			newWords.add(new Pair<String, ProposedLetter[]>(findVerticalWord(nL, constX), nL));
+			newWords.add(new Pair<String, ProposedLetter[]>(findVerticalWord(nL, constY), nL));
 		}
 		else {
-			int constY = newLetters.get(0).getY();
+			int constX = newLetters.get(0).getX();
 			for (ProposedLetter letter : newLetters) {
-				if ((constY != 0 && board[letter.getX()][constY - 1] != NULL_CHAR) ||
-						(constY != BOARD_SIZE - 1 && board[letter.getX()][constY + 1] != NULL_CHAR)) {
+				if ((constX != 0 && board[constX - 1][letter.getY()] != NULL_CHAR) ||
+						(constX != BOARD_SIZE - 1 && board[constX + 1][letter.getY()] != NULL_CHAR)) {
 					ProposedLetter[] l = { letter };
-					newWords.add(new Pair<String, ProposedLetter[]>(findVerticalWord(l, letter.getX()), l));
+					newWords.add(new Pair<String, ProposedLetter[]>(findVerticalWord(l, letter.getY()), l));
 				}
 			}
 			ProposedLetter[] nL = new ProposedLetter[newLetters.size()];
 			newLetters.toArray(nL);
-			newWords.add(new Pair<String, ProposedLetter[]>(findHorizontalWord(nL, constY), nL));
+			newWords.add(new Pair<String, ProposedLetter[]>(findHorizontalWord(nL, constX), nL));
 		}
 		return newWords;
 	}
@@ -974,4 +974,5 @@ public class Scrabble implements Runnable {
 			e.printStackTrace();
 		}
 	}
+
 }
