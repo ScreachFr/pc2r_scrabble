@@ -628,8 +628,16 @@ public class Scrabble implements Runnable {
 		return null;
 	}
 
-	private boolean validateMultipleWords(ArrayList<String> words) {
-		return words.stream().allMatch(w -> wordChecker.isWordValid(w));
+	private boolean validateMultipleWords(ArrayList<String> words) throws WordPlacementException {
+		String badWord = "";
+		for (String word : words) {
+			if (! wordChecker.isWordValid(word))
+				badWord += (word + " ;");
+		}
+		if (badWord == "")
+			return true;
+		else
+			throw new WordPlacementException("Un ou plusieurs mots ne sont pas valides : " + badWord, Why.INVALID_PROPOSITION);
 	}
 	
 	private void checkPropositionLinkedToBoard(
@@ -933,8 +941,8 @@ public class Scrabble implements Runnable {
 										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
-										{'0', '0', '0', '0', '0', '0', '0', 'M'/*7,7*/, '0', '0', '0', '0', '0', '0', '0'},
-										{'0', '0', '0', '0', '0', '0', '0', 'E', '0', '0', '0', '0', '0', '0', '0'},
+										{'0', '0', '0', '0', '0', '0', '0', '0'/*7,7*/, '0', '0', '0', '0', '0', '0', '0'},
+										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
@@ -957,7 +965,7 @@ public class Scrabble implements Runnable {
 													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'}};
-		Proposition testPropositionSucc = new Proposition(null, "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ME0000000000000E0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", 40);
+		Proposition testPropositionSucc = new Proposition(null, "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000N00000000000000A0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", 40);
 		// Trou dans le mot
 		Proposition testPropositionFail1 = new Proposition(null, "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000TABL0E000000000A00000000000000T00000000000000A0000000000000000000000000000000000000000000000000000000000000000000000000000000000", 40);
 		// Pas raccord
