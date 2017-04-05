@@ -120,7 +120,7 @@ public class MotherBrain implements Runnable {
 
 	}
 	
-	public int getActuveClient() {
+	public int getActiveClients() {
 		clientListLock.lock();
 		try {
 			return playerCount;

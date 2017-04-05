@@ -72,7 +72,7 @@ public class Scrabble implements Runnable {
 		scores = new HashMap<>();
 		roundProposition = new ArrayList<>();
 		isGameOn = false;
-		propositionValidator = new PropositionValidator(this);
+		propositionValidator = new PropositionValidator(this, motherBrain);
 		gameStateLock = new ReentrantLock();
 
 	}
@@ -96,6 +96,7 @@ public class Scrabble implements Runnable {
 		} catch (EmptyPouchException e) {
 			System.out.println("Pouch vide au début de la partie !");
 		}
+		scores.clear();
 
 		isGameOn = true;
 		gameLoopThread = new Thread(this);
@@ -175,7 +176,7 @@ public class Scrabble implements Runnable {
 				//Phase de soumission
 				switchToNextPhase();
 				System.out.println("Phase de soumission");
-				if (motherBrain.getActuveClient() > 1) { // Un seul joueur donc skip de la phase de soumission.
+				if (motherBrain.getActiveClients() > 1) { // Un seul joueur donc skip de la phase de soumission.
 					try {
 						Thread.sleep(SOUMISSION_TIME);
 					} catch (InterruptedException e) {
@@ -203,6 +204,7 @@ public class Scrabble implements Runnable {
 
 			} catch(EmptyPouchException e) {
 				startGame();
+				
 				motherBrain.broadcastNewSession();
 			}
 		}
@@ -310,8 +312,8 @@ public class Scrabble implements Runnable {
 
 		boolean isVertical = isPropositionVertical(newLetters);
 
-		//		if (!checkHoles(newLetters, proposition, isVertical)) //TODO : tester qu'on n'en a pas besoin
-		//		throw new WordPlacementException(Why.INVALID_PROPOSITION);
+//		if (!checkHoles(newLetters, proposition, isVertical)) //TODO : tester qu'on n'en a pas besoin
+//			throw new WordPlacementException("Il y a un trou dans votre proposition", Why.INVALID_PROPOSITION);
 
 		ArrayList<Pair<String, ProposedLetter[]>> solutions = findNewWords(newLetters, isVertical, parsedProposition);
 
@@ -347,7 +349,7 @@ public class Scrabble implements Runnable {
 			firstProposition = proposition;
 
 		roundProposition.add(proposition);
-
+		addPointsToPlayer(proposition.getClient().getUsername(), proposition.getScore());
 
 		return true;
 	}
@@ -470,9 +472,10 @@ public class Scrabble implements Runnable {
 	 * @return - Le placement est-il valide ?
 	 * XXX pas testée.
 	 */
-	private boolean checkHoles(ArrayList<ProposedLetter> letters, char[][] proposedBoard, boolean direction) {
+	private boolean checkHoles(ArrayList<ProposedLetter> letters, Proposition proposition, boolean direction) {
 		int min = Integer.MAX_VALUE, max = -1;
-
+		char[][] proposedBoard = proposition.getParsedBoard();
+		
 		if (direction) { // Vertical
 
 			for (ProposedLetter p : letters) {
@@ -750,6 +753,11 @@ public class Scrabble implements Runnable {
 		return result;
 	}
 
+	
+	public int getPropositionCount() {
+		return roundProposition.size();
+	}
+	
 	/**
 	 * Retourne l'état complet de la partie actuelle. Utile pour BIENVENUE.
 	 */
@@ -796,7 +804,7 @@ public class Scrabble implements Runnable {
 	public static boolean isValidChar(char c) {
 		return c == NULL_CHAR || (c >= 'A' && c <= 'Z');
 	}
-
+	
 
 	public static void setTimeout(Runnable runnable, int delay){
 		new Thread(() -> {
@@ -932,5 +940,9 @@ public class Scrabble implements Runnable {
 			e.printStackTrace();
 		}
 	}
+
+
+
+	
 
 }

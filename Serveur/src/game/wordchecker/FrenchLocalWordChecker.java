@@ -25,7 +25,7 @@ public class FrenchLocalWordChecker implements WordChecker {
 		Scanner sc = new Scanner(new BufferedReader(new FileReader(new File(path))));
 
 		while(sc.hasNextLine())  {
-			cache.add(sc.nextLine());
+			cache.add(sc.nextLine().toUpperCase());
 		}
 
 		sc.close();
@@ -36,4 +36,16 @@ public class FrenchLocalWordChecker implements WordChecker {
 		return cache.contains(word);
 	}
 
+	public static void main(String[] args) {
+		FrenchLocalWordChecker f;
+		try {
+			f = new FrenchLocalWordChecker();
+			System.out.println(f.isWordValid("MA"));
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	
 }

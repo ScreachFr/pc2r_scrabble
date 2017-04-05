@@ -10,17 +10,20 @@ public class Main {
 		if (args.length < 1) {
 			System.out.println("Pas assez d'arguents.");
 			System.out.println("cmd <port:int>");
+			return;
 		}
 		
 		
 		int port = Integer.parseInt(args[0]);
 		
 		try {
+			System.out.println("Launching server....");
 			ServerSocket socket;
 			socket = new ServerSocket(port);
 			MotherBrain mb = new MotherBrain(8, socket);
 			Thread threadMB = new Thread(mb);
 			threadMB.start();
+			System.out.println("Done");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

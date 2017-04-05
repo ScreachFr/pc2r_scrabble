@@ -8,6 +8,8 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import core.MotherBrain;
+
 
 public class PropositionValidator implements Runnable {
 	private Lock lock;
@@ -16,13 +18,15 @@ public class PropositionValidator implements Runnable {
 	private Scrabble scrabble;
 	private ArrayList<Proposition> toValidate;
 
+	private MotherBrain motherBrain;
 	
 	
-	public PropositionValidator(Scrabble scrabble) {
+	public PropositionValidator(Scrabble scrabble, MotherBrain motherBrain) {
 		lock = new ReentrantLock();
 		hasToValidate = lock.newCondition();
 		toValidate = new ArrayList<>();
 		this.scrabble = scrabble;
+		this.motherBrain = motherBrain;
 	}
 	
 
@@ -52,8 +56,11 @@ public class PropositionValidator implements Runnable {
 							currentProposition.getClient().sendRVALIDE();
 							scrabble.interruptGameLoop();
 							
-						} else if (scrabble.getCurrentPhase() == Phase.SOU)
+						} else if (scrabble.getCurrentPhase() == Phase.SOU) {
 							currentProposition.getClient().sendSVALIDE();
+							if (motherBrain.getActiveClients() == scrabble.getPropositionCount()) 
+								scrabble.interruptGameLoop();
+						}
 					} catch (WordPlacementException e) {
 						currentProposition.getClient().envoyerMessage("RINVALIDE", e.getMessage() + ":" + e.getWhy()+"");
 					} finally {
