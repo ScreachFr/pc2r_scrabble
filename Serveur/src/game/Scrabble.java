@@ -13,7 +13,6 @@ import java.util.HashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.sun.org.apache.bcel.internal.generic.FNEG; // ???
 
 import core.MotherBrain;
 import javafx.util.Pair;
@@ -26,8 +25,7 @@ public class Scrabble implements Runnable {
 	private final static int DRAW_SIZE = 7;
 	public final static int DEFAULT_POUCH_SIZE = 52; 
 	private final static Character NULL_CHAR = '0';
-//	private final static long RECHERCHE_TIME = fiveMinutes * 1000;
-	private final static long RECHERCHE_TIME = 100000;
+	private final static long RECHERCHE_TIME = fiveMinutes * 1000;
 	private final static long SOUMISSION_TIME = twoMinutes * 1000;
 	private final static long RESULTATS_TIME = 10 * 1000;
 
@@ -335,10 +333,6 @@ public class Scrabble implements Runnable {
 			listWords.add(pair.getKey());
 		validateMultipleWords(listWords);
 		
-		for (String string : listWords) {
-			System.out.println(listWords);
-		}
-
 		checkPropositionLinkedToBoard(solutions);
 
 		proposition.addFoundWord(listWords);
