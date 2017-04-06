@@ -55,7 +55,7 @@ public class MotherBrain implements Runnable {
 		}
 
 		Socket crtSocket;
-		while (true) { //TODO
+		while (true) {
 			try {
 				crtSocket = socket.accept();
 

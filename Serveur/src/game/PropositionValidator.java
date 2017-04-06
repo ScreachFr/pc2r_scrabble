@@ -44,7 +44,7 @@ public class PropositionValidator implements Runnable {
 	public void run() {
 		Proposition currentProposition;
 		
-		while(true) { //TODO
+		while(true) {
 			lock.lock();
 			try {
 				if (!toValidate.isEmpty()) {

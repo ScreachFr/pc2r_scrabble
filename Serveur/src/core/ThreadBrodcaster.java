@@ -31,7 +31,7 @@ public class ThreadBrodcaster implements Runnable {
 
 	@Override
 	public void run() {
-		while(true) { //TODO
+		while(true) {
 			lock.lock();
 			try {
 				if (!msgsToSend.isEmpty()) {

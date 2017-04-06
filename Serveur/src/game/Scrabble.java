@@ -309,6 +309,9 @@ public class Scrabble implements Runnable {
 		// Proposition sans nouvelle lettre.
 		if (newLetters.isEmpty())
 			throw new WordPlacementException("Pas de nouvelle lettre.", Why.INVALID_PROPOSITION);
+		
+		if (! isProposedLettersValid(newLetters))
+			throw new WordPlacementException("Certaines lettres utilisées ne sont pas dans le tirage !", Why.WRONG_LETTERS);
 
 		boolean isVertical = isPropositionVertical(newLetters);
 
@@ -435,16 +438,16 @@ public class Scrabble implements Runnable {
 
 	/**
 	 * Vérifie si les lettres ajoutées par la proposition sont dans le draw actuel.
-	 * @param letters - Lettres ajoutées par la proposition.
+	 * @param newLetters - Lettres ajoutées par la proposition.
 	 * @return - L'ajout de ces lettres est-il possible ?
 	 */
-	private boolean isProposedLettersValid(HashMap<Character, Pair<Integer, Integer>> letters) { //TODO : la fonction est-elle utile ?
+	private boolean isProposedLettersValid(ArrayList<ProposedLetter> newLetters) {
 		ArrayList<Character> lazyList = new ArrayList<Character>();
 		lazyList.addAll(currentDraw);
 
-		for (Character c : letters.keySet()) {
-			if (lazyList.contains(c)) 
-				lazyList.remove(c);
+		for (ProposedLetter c : newLetters) {
+			if (lazyList.contains(c.getLetter())) 
+				lazyList.remove(c.getLetter());
 			else
 				return false;
 		}
@@ -869,7 +872,6 @@ public class Scrabble implements Runnable {
 			else
 				System.out.println("failure");
 		} catch (WordPlacementException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
