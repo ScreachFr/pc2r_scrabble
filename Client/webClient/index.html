@@ -836,7 +836,7 @@
                 var content = args[1];
                 var author = args[2];
                 $('#global-chat-window #messages').append(newChatMessage(author, content));
-                $('#global-chat-window .messages-container').scrollTop($('.global-chat-window #messages').height());
+                $('#global-chat-window .messages-container').scrollTop(-999999999999999999);//Même pas honte.
             }
 
             function receptionChatPrive(args) {

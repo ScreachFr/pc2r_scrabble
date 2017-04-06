@@ -7,8 +7,9 @@ var net = require('net');
 var args = process.argv.slice(2);
 var port = 3000;
 
+
 if (args == '') {
-    console.log('No urgument, using default port.');
+    console.log('No argument, using default port.');
 } else {
     port = parseInt(args);
     if (isNaN(port)) {
@@ -80,7 +81,8 @@ io.on('connection', function(socket){
 
             server.on('close', function() {
                 console.log('Server connection closed.');
-                socket.emit('serverConnectionError');
+                if (connected)
+                    socket.emit('serverConnectionError');
             });
 
         } else {
