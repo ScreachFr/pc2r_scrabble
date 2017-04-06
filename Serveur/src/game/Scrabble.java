@@ -334,6 +334,10 @@ public class Scrabble implements Runnable {
 		for (Pair<String, ProposedLetter[]> pair : solutions)
 			listWords.add(pair.getKey());
 		validateMultipleWords(listWords);
+		
+		for (String string : listWords) {
+			System.out.println(listWords);
+		}
 
 		checkPropositionLinkedToBoard(solutions);
 
@@ -475,6 +479,12 @@ public class Scrabble implements Runnable {
 	public ArrayList<Pair<String, ProposedLetter[]>> 
 	findNewWords(ArrayList<ProposedLetter> newLetters, boolean isVertical, char[][] proposedBoard) throws WordPlacementException {
 		ArrayList<Pair<String, ProposedLetter[]>> newWords = new ArrayList<>();
+		for (int x = 0 ; x < BOARD_SIZE ; x++)
+			for (int y = 0 ; y < BOARD_SIZE ; y++)
+				System.out.println("x;y " + x + ";" + y + ":" + proposedBoard[x][y]);
+		for (int y = 0 ; y < BOARD_SIZE ; y++)
+			for (int x = 0 ; x < BOARD_SIZE ; x++)
+				System.out.println("y;x " + y + ";" + x + ":" + proposedBoard[x][y]);
 		if (newLetters.size() == 1) {
 			ProposedLetter pl = newLetters.get(0);
 			ProposedLetter[] plArray = { pl };
@@ -488,8 +498,8 @@ public class Scrabble implements Runnable {
 		else if (isVertical) {
 			int constY = newLetters.get(0).getY();
 			for (ProposedLetter letter : newLetters) { // verification si c'est intéressant de chercher un mot utilisant une seule des lettres proposées
-				if ((constY != 0 && board[constY - 1][letter.getX()] != NULL_CHAR) ||
-						(constY != BOARD_SIZE - 1 && board[constY + 1][letter.getX()] != NULL_CHAR)) {
+				if ((constY != 0 && board[letter.getX()][constY - 1] != NULL_CHAR) ||
+						(constY != BOARD_SIZE - 1 && board[letter.getX()][constY + 1] != NULL_CHAR)) {
 					ProposedLetter[] l = { letter };
 					newWords.add(new Pair<String, ProposedLetter[]>(findHorizontalWord(l, letter.getX()), l));
 				}
@@ -541,7 +551,7 @@ public class Scrabble implements Runnable {
 			}
 		}
 		if (counter != 0)
-			throw new WordPlacementException("Trou repéré dans le mot de début \"" + newWord + "\" (V).", Why.INVALID_PROPOSITION);
+			throw new WordPlacementException("Trou repéré dans le mot de début \"" + newWord + "\" (H).", Why.INVALID_PROPOSITION);
 		return newWord;
 	}
 
@@ -572,7 +582,7 @@ public class Scrabble implements Runnable {
 			}
 		}
 		if (counter != 0)
-			throw new WordPlacementException("Trou repéré dans le mot de début \"" + newWord + "\" (H).", Why.INVALID_PROPOSITION);
+			throw new WordPlacementException("Trou repéré dans le mot de début \"" + newWord + "\" (V).", Why.INVALID_PROPOSITION);
 		return newWord;
 	}
 
@@ -846,7 +856,7 @@ public class Scrabble implements Runnable {
 										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
-										{'0', '0', '0', '0', '0', '0', '0', '0'/*7,7*/, '0', '0', '0', '0', '0', '0', '0'},
+										{'0', '0', '0', '0', '0', '0', '0', 'R'/*7,7*/, 'I', '0', '0', '0', '0', '0', '0'},
 										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
@@ -870,10 +880,11 @@ public class Scrabble implements Runnable {
 													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 													{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'}};
-		Proposition testPropositionSucc = new Proposition(null, "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000N00000000000000A0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", 40);
+		Proposition testPropositionSucc = new Proposition(null, "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000RIT00000000000000U00000000000000N00000000000000E00000000000000000000000000000000000000000000000000000000000000000", 40);
 		// Trou dans le mot
 		Proposition testPropositionFail1 = new Proposition(null, "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000TABL0E000000000A00000000000000T00000000000000A0000000000000000000000000000000000000000000000000000000000000000000000000000000000", 40);
 		s.setBoard(testBoard);
+		s.currentRound = 2;
 		try {
 			s.proposeBoard(testPropositionSucc);
 			if (s.roundProposition.get(s.roundProposition.size() - 1).equals(testPropositionSucc))
