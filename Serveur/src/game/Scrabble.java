@@ -26,7 +26,8 @@ public class Scrabble implements Runnable {
 	private final static int DRAW_SIZE = 7;
 	public final static int DEFAULT_POUCH_SIZE = 52; 
 	private final static Character NULL_CHAR = '0';
-	private final static long RECHERCHE_TIME = fiveMinutes * 1000;
+//	private final static long RECHERCHE_TIME = fiveMinutes * 1000;
+	private final static long RECHERCHE_TIME = 100000;
 	private final static long SOUMISSION_TIME = twoMinutes * 1000;
 	private final static long RESULTATS_TIME = 10 * 1000;
 
@@ -88,7 +89,7 @@ public class Scrabble implements Runnable {
 		refreshBoardState();
 		switchToNextPhase();
 		pouch.resetLetters();
-		currentRound = 0;
+		currentRound = 1;
 		propositionValidatorThread = new Thread(propositionValidator);
 		propositionValidatorThread.start();
 		try {
@@ -139,13 +140,18 @@ public class Scrabble implements Runnable {
 
 	@Override
 	public void run() {
+		boolean noProposition = true;
+		
 		System.out.println("Lancement de la boucle de jeu");
 		while (isGameOn) {
 			try {
 				//Début tour
 				System.out.println("Début de tour");
 				drawLetters();
-				currentRound++;
+				if (!noProposition) {
+					noProposition = false;
+					currentRound++;
+				}
 				roundProposition.clear();
 				firstProposition = null;
 				refreshBoardState();
@@ -167,8 +173,10 @@ public class Scrabble implements Runnable {
 					motherBrain.broadcastRATROUVE(firstProposition.getClient().getUsername());
 					pouch.putLettersBack(currentDraw);
 					motherBrain.broadcastFinRecherche();
+					noProposition = false;
 				} else { //Aucune proposition.
 					motherBrain.broadcastFinRecherche();
+					noProposition = true;
 					continue;
 				}
 
@@ -590,6 +598,7 @@ public class Scrabble implements Runnable {
 	
 	private void checkPropositionLinkedToBoard(
 			ArrayList<Pair<String, ProposedLetter[]>> solutions) throws WordPlacementException {
+		System.out.println("currenteRound : " + currentRound);
 		if (currentRound > 1) {
 			for (Pair<String, ProposedLetter[]> pair : solutions) {
 				if (pair.getKey().length() != pair.getValue().length) // Sert à indiquer si un mot utilise des lettres déjà sur le plateau

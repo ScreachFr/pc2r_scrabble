@@ -36,16 +36,5 @@ public class FrenchLocalWordChecker implements WordChecker {
 		return cache.contains(word);
 	}
 
-	public static void main(String[] args) {
-		FrenchLocalWordChecker f;
-		try {
-			f = new FrenchLocalWordChecker();
-			System.out.println(f.isWordValid("MA"));
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-	}
 	
 }
