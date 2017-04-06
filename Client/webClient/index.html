@@ -642,6 +642,9 @@
                         case 'BILAN':
                             bilan(args);
                             break;
+                        case 'SESSION':
+                            session(args);
+                            break;
                         default:
                             console.log("Unhandled command : " + args[0]);
                     }
@@ -649,6 +652,12 @@
 
 
             });
+
+            function session(args) {
+                $('.score-value').each(function(e) {
+                    e.text('0');
+                });
+            }
 
             function bilan(args) {
                 console.log('Traitement du bilan');
@@ -736,7 +745,7 @@
 
             function connecte(args) {
                 if (!connectedPlayers.includes(args[1])) {
-                    $('#player-list').append($('<li id="li-' + args[1] + '">').append(getUserLink(args[1], true), $('<span id="score-' + args[1] + '">').text(' 0')));
+                    $('#player-list').append($('<li id="li-' + args[1] + '">').append(getUserLink(args[1], true), $('<span class="score-value" id="score-' + args[1] + '">').text(' 0')));
                     connectedPlayers.push(args[1]);
                 }
 
@@ -764,7 +773,7 @@
                     if ($('#score-' + split[i]).exists()) {
                         $('#score-' + split[i]).text(split[i+1]);
                     } else {
-                        $('#player-list').append($('<li id="li-' + split[i] + '" >').append(getUserLink(split[i], true), ' <span id="score-' + split[i] + '">' + split[i+1] + '</span>'));
+                        $('#player-list').append($('<li id="li-' + split[i] + '" >').append(getUserLink(split[i], true), ' <span class="score-value" id="score-' + split[i] + '">' + split[i+1] + '</span>'));
                         if (split[i] != clientUsername)
                         connectedPlayers.push(split[i]);
                     }
