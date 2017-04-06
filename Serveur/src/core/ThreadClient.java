@@ -85,7 +85,7 @@ public class ThreadClient implements Runnable {
 				messagePriveChat(args);
 				break;
 			default:
-				System.out.println("Commande Inconnue.");// j'ai du supprimer le smiley, il cassait mon eclipse :(
+				System.out.println("Commande Inconnue.");// j'ai du supprimer le smiley, il cassait mon eclipse :( // ):
 			}
 		}
 	}

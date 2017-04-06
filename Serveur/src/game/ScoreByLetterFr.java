@@ -9,7 +9,7 @@ public class ScoreByLetterFr { // On pourra mettre une interface si on veut, pou
 	private static final Map<Character, Integer> scoreLetterMap;
     static {
         Map<Character, Integer> aMap = new TreeMap<>(); // TODO : remplacer par une structure prenant en compte les fréquences d'usage des lettres en français
-        aMap.put('A', 1);								// pondérer par la fréquence de tirage initiale de la lettre K
+        aMap.put('A', 1);								// pondérer par la fréquence de tirage initiale de la lettre Keepo
         aMap.put('B', 3);
         aMap.put('C', 3);
         aMap.put('D', 2);

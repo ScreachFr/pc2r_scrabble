@@ -8,7 +8,7 @@ public class Main {
 
 	public static void main(String[] args) {
 		if (args.length < 1) {
-			System.out.println("Pas assez d'arguents.");
+			System.out.println("Pas assez d'arguments.");
 			System.out.println("cmd <port:int>");
 			return;
 		}

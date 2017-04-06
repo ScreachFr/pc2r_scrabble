@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.sun.org.apache.bcel.internal.generic.FNEG;
+import com.sun.org.apache.bcel.internal.generic.FNEG; // ???
 
 import core.MotherBrain;
 import javafx.util.Pair;
@@ -22,14 +22,12 @@ public class Scrabble implements Runnable {
 	private final static int fiveMinutes = 300;
 	private final static int twoMinutes = 120;
 
-	private final static int BOARD_SIZE = 15; //XXX Était à 15 XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX
+	private final static int BOARD_SIZE = 15;
 	private final static int DRAW_SIZE = 7;
 	public final static int DEFAULT_POUCH_SIZE = 52; 
 	private final static Character NULL_CHAR = '0';
 	private final static long RECHERCHE_TIME = fiveMinutes * 1000;
-	//	private final static long RECHERCHE_TIME = 3000;
-		private final static long SOUMISSION_TIME = twoMinutes * 1000;
-//	private final static long SOUMISSION_TIME = 3000;
+	private final static long SOUMISSION_TIME = twoMinutes * 1000;
 	private final static long RESULTATS_TIME = 10 * 1000;
 
 	private Lock gameStateLock;
@@ -314,9 +312,6 @@ public class Scrabble implements Runnable {
 
 		boolean isVertical = isPropositionVertical(newLetters);
 
-//		if (!checkHoles(newLetters, proposition, isVertical)) //TODO : tester qu'on n'en a pas besoin
-//			throw new WordPlacementException("Il y a un trou dans votre proposition", Why.INVALID_PROPOSITION);
-
 		ArrayList<Pair<String, ProposedLetter[]>> solutions = findNewWords(newLetters, isVertical, parsedProposition);
 
 		System.out.println("solution.size() = " + solutions.size());
@@ -327,8 +322,7 @@ public class Scrabble implements Runnable {
 		ArrayList<String> listWords = new ArrayList<>();
 		for (Pair<String, ProposedLetter[]> pair : solutions)
 			listWords.add(pair.getKey());
-		if (!validateMultipleWords(listWords))
-			throw new WordPlacementException("Un ou plusieurs de vos mot n'est pas valide.", Why.INVALID_PROPOSITION); //TODO : garder le mot qui pose problème
+		validateMultipleWords(listWords);
 
 		checkPropositionLinkedToBoard(solutions);
 
@@ -408,7 +402,6 @@ public class Scrabble implements Runnable {
 	 * @param newLetters - Lettres ajoutées au plateau.
 	 * @return - L'ajout est-il dans le sens vertical ?
 	 * @throws WordPlacementException - État des lettre incohérent. Encore une tentative de triche...
-	 * XXX Pas testé!
 	 */
 	private boolean isPropositionVertical(ArrayList<ProposedLetter> newLetters) throws WordPlacementException {
 		boolean sameX = true;
@@ -445,7 +438,7 @@ public class Scrabble implements Runnable {
 	 * @param letters - Lettres ajoutées par la proposition.
 	 * @return - L'ajout de ces lettres est-il possible ?
 	 */
-	private boolean isProposedLettersValid(HashMap<Character, Pair<Integer, Integer>> letters) {
+	private boolean isProposedLettersValid(HashMap<Character, Pair<Integer, Integer>> letters) { //TODO : la fonction est-elle utile ?
 		ArrayList<Character> lazyList = new ArrayList<Character>();
 		lazyList.addAll(currentDraw);
 
@@ -457,54 +450,6 @@ public class Scrabble implements Runnable {
 		}
 
 		return true; 
-	}
-
-	/**
-	 * Vérifie s'il y a des trous dans les mots qui sont engendrés par les nouvelles lettres.
-	 * @param letters - Lettres proposées par le client.
-	 * @return - Le placement est-il valide ?
-	 * XXX pas testée.
-	 */
-	private boolean checkHoles(ArrayList<ProposedLetter> letters, Proposition proposition, boolean direction) {
-		int min = Integer.MAX_VALUE, max = -1;
-		char[][] proposedBoard = proposition.getParsedBoard();
-		
-		if (direction) { // Vertical
-
-			for (ProposedLetter p : letters) {
-				if (p.getY() > max)
-					max = p.getY();
-				if (p.getY() < min)
-					min = p.getY();
-			}
-
-			int constX = letters.get(0).getX();
-
-
-			for (int i = min; i < max; i++) {
-				if (proposedBoard[constX][i] == NULL_CHAR)
-					return false;
-			}
-
-		} else { // Horizontal
-			for (ProposedLetter p : letters) {
-				if (p.getX() > max)
-					max = p.getX();
-				if (p.getX() < min)
-					min = p.getX();
-			}
-
-			int constY = letters.get(0).getY();
-
-
-			for (int i = min; i < max; i++) {
-				if (proposedBoard[i][constY] == NULL_CHAR)
-					return false;
-			}
-
-		}
-
-		return true;
 	}
 
 	/**
@@ -628,16 +573,16 @@ public class Scrabble implements Runnable {
 		return null;
 	}
 
-	private boolean validateMultipleWords(ArrayList<String> words) throws WordPlacementException {
+	private void validateMultipleWords(ArrayList<String> words) throws WordPlacementException {
 		String badWord = "";
 		for (String word : words) {
 			if (! wordChecker.isWordValid(word))
 				badWord += (word + " ;");
 		}
 		if (badWord == "")
-			return true;
+			return;
 		else
-			throw new WordPlacementException("Un ou plusieurs mots ne sont pas valides : " + badWord, Why.INVALID_PROPOSITION);
+			throw new WordPlacementException("Un ou plusieurs mots ne sont pas valides : " + badWord, Why.WRONG_WORD);
 	}
 	
 	private void checkPropositionLinkedToBoard(
@@ -693,27 +638,6 @@ public class Scrabble implements Runnable {
 		}
 		return finalScore;
 	}
-
-	//	private ArrayList<Character> letterAlreadyUsed(String word, ProposedLetter[] letterPlayer) {
-	//		ArrayList<Character> letters = new ArrayList<Character>();
-	//		char[] cS = word.toCharArray();
-	//		ProposedLetter[] pl = letterPlayer.clone();
-	//		for (int i = 0; i < cS.length; i++) {
-	//			char c = cS[i];
-	//			int j = 0;
-	//			for (; j < pl.length; j++) {
-	//				if (pl[j].getLetter().equals(c)) {
-	//					pl[j] = null;
-	//					break;
-	//				}
-	//			}
-	//			if (j == pl.length)
-	//				letters.add(c);
-	//		}
-	//		return letters;
-	//	}
-
-
 
 	public void drawLetters() throws EmptyPouchException {
 		currentDraw.clear();
@@ -902,37 +826,6 @@ public class Scrabble implements Runnable {
 
 	public static void main(String[] args) {
 		Scrabble s = new Scrabble(new RandomPouch(42), new DumbWordChecker(), null);
-
-//		char[][] b1 = new char[][]{{'0', '0', '0'}, {'A', 'B', 'C'}, {'0', '0', '0'}};
-//		char[][] b2 = new char[][]{{'0', '0', '0'}, {'0', '0', '0'}, {'0', '0', '0'}};
-//
-//		s.setBoard(b2);
-//
-//		System.out.println(s.isPropositionValid(b1));
-//		ArrayList<ProposedLetter> letters = new ArrayList<ProposedLetter>();
-//
-//		letters.add(new ProposedLetter('A', 1, 3));
-//		letters.add(new ProposedLetter('B', 5, 3));
-//		letters.add(new ProposedLetter('C', 3, 30));
-//		letters.add(new ProposedLetter('D', 1, 3));
-//
-//		ArrayList<ProposedLetter> validLetters = s.findNewLetters(b1);
-//
-//		for (ProposedLetter proposedLetter : validLetters)
-//			System.out.println(proposedLetter.getX() + ";" + proposedLetter.getY() + ":" + proposedLetter.getLetter());
-//
-//		try {
-//			ArrayList<Pair<String, ProposedLetter[]>> solutions = s.findNewWords(validLetters, s.isPropositionVertical(validLetters), b1);
-//			System.out.println("OK");
-//			System.out.println(solutions.size());
-//			for (Pair<String, ProposedLetter[]> pair : solutions) {
-//				System.out.print(pair.getKey());
-//				for (ProposedLetter pL : pair.getValue())
-//					System.out.println("(" + pL.getLetter() + " : " + pL.getX() + ";" + pL.getY() + ")");
-//			}
-//		} catch (WordPlacementException e) {
-//			e.printStackTrace();
-//		}
 		
 		char[][] testBoard=new char[][]{{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
 										{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'},
@@ -968,8 +861,6 @@ public class Scrabble implements Runnable {
 		Proposition testPropositionSucc = new Proposition(null, "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000N00000000000000A0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", 40);
 		// Trou dans le mot
 		Proposition testPropositionFail1 = new Proposition(null, "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000TABL0E000000000A00000000000000T00000000000000A0000000000000000000000000000000000000000000000000000000000000000000000000000000000", 40);
-		// Pas raccord
-		Proposition testPropositionFail2 = new Proposition(null, "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000T0BLE0000000000A00000000000000T00000000000000A0000000000000000000000000000000000000000000000000000000000000000000000000000000000", 40);
 		s.setBoard(testBoard);
 		try {
 			s.proposeBoard(testPropositionSucc);
